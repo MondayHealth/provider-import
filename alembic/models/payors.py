@@ -9,4 +9,4 @@ class Payor(BaseBase):
     """
 
     #
-    name = Column(String(32), nullable=False)
+    name = Column(String(16), nullable=False)

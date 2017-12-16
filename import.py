@@ -16,8 +16,8 @@ def _de_camel(name):
 
 
 def _process_directories(reader: csv.DictReader) -> None:
-    name_max = 0
-    short_name_max = 0
+    name_max: int = 0
+    short_name_max: int = 0
     for row in reader:
         name_max = max(len(row['name']), name_max)
         short_name_max = max(len(row['short_name']), short_name_max)
@@ -26,7 +26,7 @@ def _process_directories(reader: csv.DictReader) -> None:
 
 
 def _process_payors(reader: csv.DictReader) -> None:
-    name_max = 0
+    name_max: int = 0
     for row in reader:
         name_max = max(len(row['name']), name_max)
     print("name max", name_max)
@@ -59,10 +59,23 @@ def _process_locations(reader: csv.DictReader) -> None:
     print(failures)
 
 
+def _process_plans(reader: csv.DictReader) -> None:
+    og_code_max: int = 0
+    for row in reader:
+        og_code_max = max(len(row['original_code']), og_code_max)
+    print("name max", og_code_max)
+
+
+def _process_providers(reader: csv.DictReader) -> None:
+    pass
+
+
 HANDLERS: Mapping[str, Callable[[csv.DictReader], None]] = {
     "directories": _process_directories,
     "payors": _process_payors,
-    # "locations": _process_locations
+    # "locations": _process_locations,
+    "plans": _process_plans,
+    "provider_records": _process_providers,
 }
 
 
