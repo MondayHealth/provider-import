@@ -1,37 +1,44 @@
 import csv
 import os
-from collections import OrderedDict
-from typing import List, Tuple
-
-import sqlalchemy
+from typing import List, Tuple, Callable, Mapping
 
 BASE_PATH: str = '/Users/ixtli/Downloads/monday'
 
 FILE_EXT: str = 'csv'
 
-FIELD_TYPES: dict = {
-    "id": "PRIMARY KEY",
-    "record_limit": "int",
-    "alias_id": "~UNKNOWN~",
-    "certified": "bool",
-    "sliding_scale": "bool",
-    "free_consultation": "bool",
-    "accepting_new_patients": "bool"
+
+def _process_directories(reader: csv.DictReader) -> None:
+    name_max = 0
+    short_name_max = 0
+    for row in reader:
+        name_max = max(len(row['name']), name_max)
+        short_name_max = max(len(row['short_name']), short_name_max)
+    print("name max", name_max)
+    print("short_name max", short_name_max)
+
+
+def _process_payors(reader: csv.DictReader) -> None:
+    name_max = 0
+    for row in reader:
+        name_max = max(len(row['name']), name_max)
+    print("name max", name_max)
+
+
+def _process_locations(reader: csv.DictReader) -> None:
+    addy_max = 0
+    for row in reader:
+        addy_max = max(len(row['address']), addy_max)
+    print("addy max", addy_max)
+
+
+HANDLERS: Mapping[str, Callable[[csv.DictReader], None]] = {
+    "directories": _process_directories,
+    "payors": _process_payors,
+    "locations": _process_locations
 }
 
-SUFFIX_TYPES: dict = {
-    "at": "date",
-    "id": "FOREIGN KEY",
-    "number": "int",
-    "fee": "int"
-}
 
-PREFIX_TYPES: dict = {
-    "is": "bool"
-}
-
-
-def discover_files() -> List[Tuple[str, str]]:
+def _discover_files() -> List[Tuple[str, str]]:
     ret = []
     for root, dirs, files in os.walk(BASE_PATH):
         for file in files:
@@ -41,43 +48,18 @@ def discover_files() -> List[Tuple[str, str]]:
     return ret
 
 
-def get_table_for_column_names(names: List[str]) -> OrderedDict:
-    table = OrderedDict()
-    for name in names:
-        if name in FIELD_TYPES:
-            table[name] = FIELD_TYPES[name]
-            continue
-
-        tokens = name.split("_")
-        last = tokens[-1]
-
-        if last in SUFFIX_TYPES:
-            table[name] = SUFFIX_TYPES[last]
-            continue
-
-        first = tokens[0]
-
-        if first in PREFIX_TYPES:
-            table[name] = PREFIX_TYPES[first]
-            continue
-
-        print(name)
-
-        table[name] = "str"
-
-    return table
+def _process_file(name: str, reader: csv.DictReader) -> None:
+    if name in HANDLERS:
+        print("===", name)
+        HANDLERS[name](reader)
+        print()
 
 
 def run_from_command_line() -> None:
-    tables = {}
-    for name, path in discover_files():
+    for name, path in _discover_files():
         with open(path, newline='') as file:
             reader = csv.DictReader(file)
-            table = get_table_for_column_names(reader.fieldnames)
-            tables[name] = table
-
-    for table, fields in tables.items():
-        print(table, fields)
+            _process_file(name, reader)
 
 
 if __name__ == "__main__":
