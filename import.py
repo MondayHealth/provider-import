@@ -1,10 +1,18 @@
 import csv
 import os
+import re
 from typing import List, Tuple, Callable, Mapping
+
+import usaddress
 
 BASE_PATH: str = '/Users/ixtli/Downloads/monday'
 
 FILE_EXT: str = 'csv'
+
+
+def _de_camel(name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
 def _process_directories(reader: csv.DictReader) -> None:
@@ -25,16 +33,36 @@ def _process_payors(reader: csv.DictReader) -> None:
 
 
 def _process_locations(reader: csv.DictReader) -> None:
-    addy_max = 0
+    parts = {}
+    types = set()
+    failures = []
     for row in reader:
-        addy_max = max(len(row['address']), addy_max)
-    print("addy max", addy_max)
+        try:
+            tag, address_type = usaddress.tag(row['address'])
+        except usaddress.RepeatedLabelError as e:
+            failures.append((row['address'], e.MESSAGE))
+            continue
+
+        types.add(address_type)
+        for key, val in tag.items():
+            dc_key = _de_camel(key)
+            if dc_key not in parts:
+                parts[dc_key] = len(val)
+            else:
+                parts[dc_key] = max(len(val), parts[dc_key])
+
+    for key, val in parts.items():
+        print(key, " - ", val)
+
+    print("address types:", types)
+
+    print(failures)
 
 
 HANDLERS: Mapping[str, Callable[[csv.DictReader], None]] = {
     "directories": _process_directories,
     "payors": _process_payors,
-    "locations": _process_locations
+    # "locations": _process_locations
 }
 
 
