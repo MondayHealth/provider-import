@@ -62,7 +62,7 @@ class ProviderRecord(BaseBase):
 
     last_name = Column(String(64), nullable=False)
 
-    #
+    # Practice qualifcations or credentials
     license = Column(String(), nullable=False)
 
     address = Column(Integer, ForeignKey("address.id"), nullable=False)
@@ -76,10 +76,10 @@ class ProviderRecord(BaseBase):
     #
     directory = Column(Integer, ForeignKey("directory.id"))
 
-    #
+    # Psychiatry board certificate number
     certificate_number = Column(String())
 
-    #
+    # Whether or not they are certified on the ABPN database
     certified = Column(Boolean())
 
     minimum_fee = Column(Integer())
@@ -91,15 +91,18 @@ class ProviderRecord(BaseBase):
     free_consultation = Column(Boolean())
 
     # TODO: List
+    # Subspecialties, pulled from goodtherapy
     services = Column(Text())
 
     # TODO: List
     languages = Column(Text())
 
     # TODO: List
+    # CBT, psychoanalytic, dialectic, etc.
     treatment_orientations = Column(Text())
 
     # TODO: List
+    # material conditions: comorbidity, identity, etc., faith
     works_with_groups = Column(Text())
 
     # TODO: List, ranges?
@@ -110,13 +113,14 @@ class ProviderRecord(BaseBase):
     # TODO: List
     accepted_payors = Column(Text())
 
-    #
-    license_number = Column(String())
+    # State license database number
+    license_number = Column(String(64))
 
     #
     accepting_new_patients = Column(Boolean())
 
     # TODO: List
+    # What sort of patients (couples, individuals, families, etc.)
     modalities = Column(Text())
 
     began_practice = Column(Integer())

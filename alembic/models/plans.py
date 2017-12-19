@@ -26,8 +26,8 @@ class Plan(BaseBase):
     #
     record_limit = Column(Integer())
 
-    # ???
-    original_code = Column(String(16))
+    # A plan-specific code sometimes used to search the API
+    original_code = Column(String(64))
 
     providers = relationship(ProviderRecord, secondary=providers_plans_table,
                              back_populates="accepted_plans")
