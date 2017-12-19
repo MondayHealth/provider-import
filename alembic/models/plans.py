@@ -1,15 +1,10 @@
-from sqlalchemy import String, Column, Integer, Table, ForeignKey
+from sqlalchemy import String, Column, Integer
 from sqlalchemy.orm import relationship
 
-from alembic.models.base import BaseBase, Base
+from alembic.models.base import BaseBase, make_join_table
 from alembic.models.providers import Provider
 
-provider_plan_table = Table("provider_plan",
-                            Base.metadata,
-                            Column("provider_id", Integer,
-                                   ForeignKey("provider.id")),
-                            Column("plan_id", Integer,
-                                   ForeignKey("plan.id")))
+provider_plan_table = make_join_table("provider", "plan")
 
 
 class Plan(BaseBase):

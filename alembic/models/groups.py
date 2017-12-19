@@ -1,14 +1,10 @@
-from sqlalchemy import Column, String, Table, Integer, ForeignKey
+from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
 
-from alembic.models.base import BaseBase
+from alembic.models.base import BaseBase, make_join_table
 from alembic.models.providers import Provider
 
-group_provider_table = Table("groups_providers",
-                             Column("group_id", Integer,
-                                    ForeignKey("orientation.id")),
-                             Column("provider_id", Integer,
-                                    ForeignKey("provider.id")))
+provider_group_table = make_join_table("provider", "group")
 
 
 class Group(BaseBase):
@@ -18,5 +14,5 @@ class Group(BaseBase):
     name = Column(String(128), nullable=False)
 
     providers = relationship(Provider,
-                             secondary=group_provider_table,
+                             secondary=provider_group_table,
                              back_populates="groups")

@@ -1,14 +1,10 @@
-from sqlalchemy import Column, String, Table, Integer, ForeignKey
+from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
 
-from alembic.models.base import BaseBase
+from alembic.models.base import BaseBase, make_join_table
 from alembic.models.providers import Provider
 
-provider_language_table = Table("provider_language",
-                                Column("provider_id", Integer,
-                                       ForeignKey("provider.id")),
-                                Column("language_id", Integer,
-                                       ForeignKey("language.id")))
+provider_language_table = make_join_table("provider", "language")
 
 
 class Language(BaseBase):

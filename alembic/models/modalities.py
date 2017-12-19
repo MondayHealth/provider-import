@@ -1,14 +1,10 @@
-from sqlalchemy import Column, String, Table, Integer, ForeignKey
+from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
 
-from alembic.models.base import BaseBase
+from alembic.models.base import BaseBase, make_join_table
 from alembic.models.providers import Provider
 
-modality_provider_table = Table("modalities_providers",
-                                Column("modality_id", Integer,
-                                       ForeignKey("modality.id")),
-                                Column("provider_id", Integer,
-                                       ForeignKey("provider.id")))
+provider_modality_table = make_join_table("provider", "modality")
 
 
 class Modality(BaseBase):
@@ -17,5 +13,5 @@ class Modality(BaseBase):
     """
     name = Column(String(64))
 
-    providers = relationship(Provider, secondary=modality_provider_table,
+    providers = relationship(Provider, secondary=provider_modality_table,
                              back_populates="modalities")

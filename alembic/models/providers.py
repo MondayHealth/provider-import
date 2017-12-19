@@ -15,7 +15,7 @@ from alembic.models.plans import provider_plan_table, Plan
 from alembic.models.specialties import Specialty, providers_specialties_table
 
 
-def relate(cls, table):
+def _relate(cls, table):
     return relationship(cls, secondary=table, back_populates="providers")
 
 
@@ -97,20 +97,20 @@ class Provider(BaseBase):
     # Custom association
     licenses = relationship(License, back_populates="licensees")
 
-    credentials = relate(Credential, provider_credential_table)
+    credentials = _relate(Credential, provider_credential_table)
 
-    payment_methods = relate(PaymentMethod, provider_method_table)
+    payment_methods = _relate(PaymentMethod, provider_method_table)
 
-    plans_accepted = relate(Plan, provider_plan_table)
+    plans_accepted = _relate(Plan, provider_plan_table)
 
-    specialties = relate(Specialty, providers_specialties_table)
+    specialties = _relate(Specialty, providers_specialties_table)
 
-    languages = relate(Language, provider_language_table)
+    languages = _relate(Language, provider_language_table)
 
-    treatment_orientations = relate(Orientation, orientation_provider_table)
+    treatment_orientations = _relate(Orientation, orientation_provider_table)
 
-    groups = relate(Group, group_provider_table)
+    groups = _relate(Group, group_provider_table)
 
-    accepted_payors = relate(Payor, payor_provider_table)
+    accepted_payors = _relate(Payor, payor_provider_table)
 
-    modalities = relate(Modality, modality_provider_table)
+    modalities = _relate(Modality, modality_provider_table)

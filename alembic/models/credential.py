@@ -1,14 +1,10 @@
-from sqlalchemy import String, Column, Table, Integer, ForeignKey
+from sqlalchemy import String, Column
 from sqlalchemy.orm import relationship
 
-from alembic.models.base import BaseBase
+from alembic.models.base import BaseBase, make_join_table
 from alembic.models.providers import Provider
 
-provider_credential_table = Table("providers_credentials",
-                                  Column("provider_id", Integer,
-                                         ForeignKey("provider.id")),
-                                  Column("credential_id", Integer,
-                                         ForeignKey("credential.id")))
+provider_credential_table = make_join_table("provider", "credential")
 
 
 class Credential(BaseBase):
