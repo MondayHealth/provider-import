@@ -1,19 +1,26 @@
-from sqlalchemy import String, Column, Integer
+from sqlalchemy import String, Column, Integer, Table, ForeignKey
+from sqlalchemy.orm import relationship
 
-from alembic.models.base import BaseBase
+from alembic.models.base import BaseBase, Base
+from alembic.models.providers import Provider
+
+providers_plans_table = Table("providers_plans",
+                              Base.metadata,
+                              Column("provider_id", Integer,
+                                     ForeignKey("provider.id")),
+                              Column("plan_id", Integer,
+                                     ForeignKey("plan.id")))
 
 
 class Plan(BaseBase):
     """
-
         t.integer "payor_id", null: false
-    t.string "name", null: false
-    t.text "url", null: false
-    t.integer "record_limit"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "original_code"
-
+        t.string "name", null: false
+        t.text "url", null: false
+        t.integer "record_limit"
+        t.datetime "created_at", null: false
+        t.datetime "updated_at", null: false
+        t.string "original_code"
     """
 
     #
@@ -27,3 +34,6 @@ class Plan(BaseBase):
 
     # A plan-specific code sometimes used to search the API
     original_code = Column(String(64))
+
+    providers = relationship(Provider, secondary=providers_plans_table,
+                             back_populates="accepted_plans")

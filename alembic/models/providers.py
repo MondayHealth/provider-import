@@ -68,8 +68,8 @@ class Provider(BaseBase):
 
     address = Column(Integer, ForeignKey("address.id"), nullable=False)
 
-    # TODO: List
-    specialties = Column(Text())
+    specialties = relationship(Specialty, secondary=providers_specialties_table,
+                               back_populates="providers")
 
     #
     provider = Column(Integer, ForeignKey("provider.id"))
