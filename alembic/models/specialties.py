@@ -1,6 +1,9 @@
 from sqlalchemy import Column, String, Boolean, Integer
+from sqlalchemy.orm import relationship
 
 from alembic.models.base import BaseBase
+from alembic.models.providers import Provider
+from alembic.models.providers_specialties import providers_specialties_table
 
 
 class Specialty(BaseBase):
@@ -23,3 +26,6 @@ class Specialty(BaseBase):
 
     #
     alias_id = Column(Integer())
+
+    providers = relationship(Provider, secondary=providers_specialties_table,
+                             back_populates="specialties")

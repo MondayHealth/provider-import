@@ -1,7 +1,11 @@
 from sqlalchemy import String, Column, ForeignKey, Integer, Text, Boolean, \
     DateTime
+from sqlalchemy.orm import relationship
 
 from alembic.models.base import BaseBase
+from alembic.models.providers_plans import providers_plans_table
+from alembic.models.providers_specialties import providers_specialties_table
+from alembic.models.specialties import Specialty
 
 
 class ProviderRecord(BaseBase):
@@ -50,8 +54,9 @@ class ProviderRecord(BaseBase):
 
     payor = Column(Integer, ForeignKey("payor.id"))
 
-    # TODO: List
-    accepted_plan_ids = Column(String())
+    accepted_plans = relationship(Specialty,
+                                  secondary=providers_plans_table,
+                                  back_populates="providers")
 
     first_name = Column(String(64), nullable=False)
 
@@ -62,8 +67,8 @@ class ProviderRecord(BaseBase):
 
     address = Column(Integer, ForeignKey("address.id"), nullable=False)
 
-    # TODO: List
-    specialties = Column(Text())
+    specialties = relationship(Specialty, secondary=providers_specialties_table,
+                               back_populates="providers")
 
     #
     provider = Column(Integer, ForeignKey("provider.id"))
