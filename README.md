@@ -6,6 +6,8 @@ You must have python3.6 installed. Do this with homebrew.
 It is highly recommended to use a virtual environment (venv) which you can read
 up on here: https://docs.python.org/3/tutorial/venv.html.
 
+Before doing anything you may want to `source venv/bin/activate`
+
 ### Usage
 When you check this repo out for the first time you want to run
 `python3 -m venv venv` which should create a new directory called 'venv' which
