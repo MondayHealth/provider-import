@@ -1,13 +1,20 @@
 from sqlalchemy import String, Column, ForeignKey, Integer, Text, Boolean, \
-    DateTime, Table
+    DateTime
 from sqlalchemy.orm import relationship
 
-from alembic.models.base import BaseBase, Base
+from alembic.models.base import BaseBase
+from alembic.models.groups import group_provider_table, Group
+from alembic.models.language import Language, provider_language_table
+from alembic.models.license import License
+from alembic.models.modalities import Modality, modality_provider_table
+from alembic.models.orientation import Orientation, orientation_provider_table
+from alembic.models.payors import Payor, payor_provider_table
+from alembic.models.plans import provider_plan_table, Plan
+from alembic.models.specialties import Specialty, providers_specialties_table
 
-plan_provider_table = Table("plan_provider", Base.metadata,
-                            Column("plan_id", Integer, ForeignKey("plan.id")),
-                            Column("provider_id", Integer,
-                                   ForeignKey("provider.id")))
+
+def relate(cls, table):
+    return relationship(cls, secondary=table, back_populates="providers")
 
 
 class Provider(BaseBase):
@@ -54,27 +61,17 @@ class Provider(BaseBase):
       end
     """
 
-    payor = Column(Integer, ForeignKey("payor.id"))
-
-    plans_accepted = relationship("Plan", secondary=plan_provider_table,
-                                  back_populates="providers")
-
     first_name = Column(String(64), nullable=False)
 
     last_name = Column(String(64), nullable=False)
 
-    # Practice qualifcations or credentials
+    # Practice qualifications or credentials
     license = Column(String(), nullable=False)
 
     address = Column(Integer, ForeignKey("address.id"), nullable=False)
 
-    specialties = relationship(Specialty, secondary=providers_specialties_table,
-                               back_populates="providers")
-
-    #
     provider = Column(Integer, ForeignKey("provider.id"))
 
-    #
     directory = Column(Integer, ForeignKey("directory.id"))
 
     # Psychiatry board certificate number
@@ -91,38 +88,12 @@ class Provider(BaseBase):
 
     free_consultation = Column(Boolean())
 
-    # TODO: List
-    # Subspecialties, pulled from goodtherapy
-    services = Column(Text())
-
-    # TODO: List
-    languages = Column(Text())
-
-    # TODO: List
-    # CBT, psychoanalytic, dialectic, etc.
-    treatment_orientations = Column(Text())
-
-    # TODO: List
-    # material conditions: comorbidity, identity, etc., faith
-    works_with_groups = Column(Text())
-
     # TODO: List, ranges?
     works_with_ages = Column(Text())
 
     website_url = Column(String(2048))
 
-    # TODO: List
-    accepted_payors = Column(Text())
-
-    # State license database number
-    license_number = Column(String(64))
-
-    #
     accepting_new_patients = Column(Boolean())
-
-    # TODO: List
-    # What sort of patients (couples, individuals, families, etc.)
-    modalities = Column(Text())
 
     began_practice = Column(Integer())
 
@@ -130,10 +101,24 @@ class Provider(BaseBase):
 
     year_graduated = Column(Integer())
 
-    # TODO: Enum
-    license_state = Column(String())
-
-    # TODO: Enum
+    # TODO: List
     accepted_payment_methods = Column(String())
 
     source_updated_at = Column(DateTime)
+
+    # Custom association
+    licenses = relationship(License, back_populates="licensees")
+
+    plans_accepted = relationship(Plan, provider_plan_table)
+
+    specialties = relate(Specialty, providers_specialties_table)
+
+    languages = relate(Language, provider_language_table)
+
+    treatment_orientations = relate(Orientation, orientation_provider_table)
+
+    groups = relate(Group, group_provider_table)
+
+    accepted_payors = relate(Payor, payor_provider_table)
+
+    modalities = relate(Modality, modality_provider_table)

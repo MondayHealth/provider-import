@@ -1,1 +1,4 @@
 Generic single-database configuration.
+
+services from goodtherapy should be moved into modalities
+modalities from goodtherapy should be moved into treatment orientation

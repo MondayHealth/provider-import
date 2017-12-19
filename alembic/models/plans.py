@@ -4,12 +4,12 @@ from sqlalchemy.orm import relationship
 from alembic.models.base import BaseBase, Base
 from alembic.models.providers import Provider
 
-providers_plans_table = Table("providers_plans",
-                              Base.metadata,
-                              Column("provider_id", Integer,
-                                     ForeignKey("provider.id")),
-                              Column("plan_id", Integer,
-                                     ForeignKey("plan.id")))
+provider_plan_table = Table("provider_plan",
+                            Base.metadata,
+                            Column("provider_id", Integer,
+                                   ForeignKey("provider.id")),
+                            Column("plan_id", Integer,
+                                   ForeignKey("plan.id")))
 
 
 class Plan(BaseBase):
@@ -35,5 +35,5 @@ class Plan(BaseBase):
     # A plan-specific code sometimes used to search the API
     original_code = Column(String(64))
 
-    providers = relationship(Provider, secondary=providers_plans_table,
+    providers = relationship(Provider, secondary=provider_plan_table,
                              back_populates="accepted_plans")
