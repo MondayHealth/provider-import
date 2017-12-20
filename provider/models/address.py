@@ -46,7 +46,7 @@ class Address(Base):
 
     # OccupancyIdentifier - the identifier of an occupancy, often a number or
     #     letter
-    occupancy_identifier = Column(String(String(32)))
+    occupancy_identifier = Column(String(32))
 
     # PlaceName - city
     place_name = Column(String(64))
