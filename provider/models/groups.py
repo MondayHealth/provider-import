@@ -1,12 +1,12 @@
 from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
 
-from provider.models.base import BaseBase, make_join_table
+from provider.models.base import Base, make_join_table
 
 provider_group_table = make_join_table("provider", "group")
 
 
-class Group(BaseBase):
+class Group(Base):
     """
     A cohort of people. E.g.: TBI sufferers, gay people, religious people, etc.
     """

@@ -1,9 +1,9 @@
 from sqlalchemy import Column, String, Integer
 
-from provider.models.base import BaseBase
+from provider.models.base import Base
 
 
-class Address(BaseBase):
+class Address(Base):
     """
     The address components are based upon the United States Thoroughfare,
     Landmark, and Postal Address Data Standard, and usaddress knows about the

@@ -1,12 +1,12 @@
 from sqlalchemy import String, Column
 from sqlalchemy.orm import relationship
 
-from provider.models.base import BaseBase, make_join_table
+from provider.models.base import Base, make_join_table
 
 provider_payor_table = make_join_table("provider", "payor")
 
 
-class Payor(BaseBase):
+class Payor(Base):
     """
 
     """

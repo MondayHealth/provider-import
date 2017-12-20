@@ -1,9 +1,9 @@
 from sqlalchemy import Column, String, Integer, ForeignKey
 
-from provider.models.base import BaseBase
+from provider.models.base import Base
 
 
-class Location(BaseBase):
+class Location(Base):
     # Phone number
     phone_number = Column(String(20))
 

@@ -1,10 +1,10 @@
 from sqlalchemy import String, Column, Integer, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 
-from provider.models.base import BaseBase
+from provider.models.base import Base
 
 
-class License(BaseBase):
+class License(Base):
     number = Column(String(64), nullable=False)
 
     granted = Column(DateTime())

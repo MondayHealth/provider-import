@@ -1,7 +1,7 @@
 from __future__ import with_statement
 
-import os, sys
-
+import os
+import sys
 from logging.config import fileConfig
 
 from alembic import context
@@ -11,7 +11,7 @@ package_parent = '..'
 script_dir = os.path.dirname(
     os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 sys.path.append(os.path.normpath(os.path.join(script_dir, package_parent)))
-from provider.models.providers import Provider
+from provider.models import providers
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -25,7 +25,7 @@ fileConfig(config.config_file_name)
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = Provider.metadata
+target_metadata = providers.Provider.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

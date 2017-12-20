@@ -1,12 +1,12 @@
 from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
 
-from provider.models.base import BaseBase, make_join_table
+from provider.models.base import Base, make_join_table
 
 provider_modality_table = make_join_table("provider", "modality")
 
 
-class Modality(BaseBase):
+class Modality(Base):
     """
     What sort of patients (couples, individuals, families, etc.)
     """

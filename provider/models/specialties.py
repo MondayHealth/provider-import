@@ -21,8 +21,7 @@ class Specialty(BaseBase):
     name = Column(String(), nullable=False)
 
     #
-    is_canonical = Column(Boolean(), server_default=False, default=False,
-                          nullable=False)
+    is_canonical = Column(Boolean(), default=False, nullable=False)
 
     #
     alias_id = Column(Integer())

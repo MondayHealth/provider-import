@@ -1,12 +1,12 @@
 from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
 
-from provider.models.base import BaseBase, make_join_table
+from provider.models.base import Base, make_join_table
 
 provider_orientation_table = make_join_table("provider", "orientation")
 
 
-class Orientation(BaseBase):
+class Orientation(Base):
     """
     The way a providers practice is "oriented," that is, do they offer CBT,
     psychotherapy, etc.

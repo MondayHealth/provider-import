@@ -1,9 +1,9 @@
 from sqlalchemy import String, Column, Integer
 
-from provider.models.base import BaseBase
+from provider.models.base import Base
 
 
-class Directory(BaseBase):
+class Directory(Base):
     """
 
     """

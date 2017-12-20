@@ -2,7 +2,7 @@ from sqlalchemy import String, Column, ForeignKey, Integer, Text, Boolean, \
     DateTime
 from sqlalchemy.orm import relationship
 
-from provider.models.base import BaseBase
+from provider.models.base import Base
 from provider.models.credential import Credential, provider_credential_table
 from provider.models.groups import provider_group_table, Group
 from provider.models.language import Language, provider_language_table
@@ -19,7 +19,7 @@ def _relate(cls, table):
     return relationship(cls, secondary=table, back_populates="providers")
 
 
-class Provider(BaseBase):
+class Provider(Base):
     """
       create_table "provider_records", force: :cascade do |t|
         t.integer "payor_id"
