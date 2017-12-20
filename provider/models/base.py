@@ -26,7 +26,9 @@ Base = declarative_base(cls=BaseBase)
 Base.metadata.schema = "provider"
 
 
-def make_join_table(left: str, right: str) -> Table:
+def make_join_table(left_in: str, right_in: str) -> Table:
+    left = left_in.lower()
+    right = right_in.lower()
     left_plural = left
     right_plural = right
 

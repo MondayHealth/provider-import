@@ -1,21 +1,20 @@
 from sqlalchemy import String, Column, ForeignKey, Integer, Text, Boolean, \
-    DateTime
+    DateTime, Table
 from sqlalchemy.orm import relationship
 
 from provider.models.base import Base
-from provider.models.credential import Credential, provider_credential_table
-from provider.models.groups import provider_group_table, Group
-from provider.models.language import Language, provider_language_table
-from provider.models.license import License
-from provider.models.modalities import Modality, provider_modality_table
-from provider.models.orientation import Orientation, provider_orientation_table
-from provider.models.payment_methods import PaymentMethod, provider_method_table
-from provider.models.payors import Payor, provider_payor_table
-from provider.models.plans import provider_plan_table, Plan
-from provider.models.specialties import Specialty, provider_speciality_table
+from provider.models.credential import provider_credential_table
+from provider.models.groups import provider_group_table
+from provider.models.language import provider_language_table
+from provider.models.modalities import provider_modality_table
+from provider.models.orientation import provider_orientation_table
+from provider.models.payment_methods import provider_method_table
+from provider.models.payors import provider_payor_table
+from provider.models.plans import provider_plan_table
+from provider.models.specialties import provider_speciality_table
 
 
-def _relate(cls, table):
+def _relate(cls: str, table: Table):
     return relationship(cls, secondary=table, back_populates="providers")
 
 
@@ -69,7 +68,7 @@ class Provider(Base):
 
     last_name = Column(String(64), nullable=False)
 
-    address = Column(Integer, ForeignKey("address.id"), nullable=False)
+    address_id = Column(Integer, ForeignKey("address.id"), nullable=False)
 
     minimum_fee = Column(Integer())
 
@@ -95,22 +94,22 @@ class Provider(Base):
     works_with_ages = Column(Text())
 
     # Custom association
-    licenses = relationship(License, back_populates="licensees")
+    licenses = relationship("License", back_populates="licensee")
 
-    credentials = _relate(Credential, provider_credential_table)
+    credentials = _relate("Credential", provider_credential_table)
 
-    payment_methods = _relate(PaymentMethod, provider_method_table)
+    payment_methods = _relate("PaymentMethod", provider_method_table)
 
-    plans_accepted = _relate(Plan, provider_plan_table)
+    plans_accepted = _relate("Plan", provider_plan_table)
 
-    specialties = _relate(Specialty, provider_speciality_table)
+    specialties = _relate("Specialty", provider_speciality_table)
 
-    languages = _relate(Language, provider_language_table)
+    languages = _relate("Language", provider_language_table)
 
-    treatment_orientations = _relate(Orientation, provider_orientation_table)
+    treatment_orientations = _relate("Orientation", provider_orientation_table)
 
-    groups = _relate(Group, provider_group_table)
+    groups = _relate("Group", provider_group_table)
 
-    accepted_payors = _relate(Payor, provider_payor_table)
+    accepted_payors = _relate("Payor", provider_payor_table)
 
-    modalities = _relate(Modality, provider_modality_table)
+    modalities = _relate("Modality", provider_modality_table)

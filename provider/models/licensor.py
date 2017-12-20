@@ -9,4 +9,4 @@ class Licensor(Base):
 
     locale = Column(String())
 
-    licensees = relationship("License", back_populates="licensor")
+    licenses = relationship("License", back_populates="licensor")

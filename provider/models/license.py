@@ -13,6 +13,6 @@ class License(Base):
 
     licensee_id = Column(Integer, ForeignKey("provider.id"), primary_key=True)
 
-    licensor = relationship("Licensor", back_populates="licensees")
+    licensor = relationship("Licensor", back_populates="licenses")
 
     licensee = relationship("Provider", back_populates="licenses")
