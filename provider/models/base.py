@@ -21,9 +21,13 @@ class BaseBase:
     def __tablename__(self) -> str:
         return self.__name__.lower()
 
+    @declared_attr
+    def __table_args__(self) -> dict:
+        return {'schema': 'monday'}
+
 
 Base = declarative_base(cls=BaseBase)
-Base.metadata.schema = "provider"
+Base.metadata.schema = "monday"
 
 
 def make_join_table(left_in: str, right_in: str) -> Table:

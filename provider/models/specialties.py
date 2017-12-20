@@ -1,12 +1,12 @@
 from sqlalchemy import Column, String, Boolean, Integer
 from sqlalchemy.orm import relationship
 
-from provider.models.base import BaseBase, make_join_table
+from provider.models.base import make_join_table, Base
 
 provider_speciality_table = make_join_table("provider", "specialty")
 
 
-class Specialty(BaseBase):
+class Specialty(Base):
     """
       create_table "specialties", force: :cascade do |t|
         t.string "name", null: false
