@@ -1,6 +1,6 @@
 from sqlalchemy import String, Column, Integer
 
-from alembic.models.base import BaseBase
+from provider.models.base import BaseBase
 
 
 class Directory(BaseBase):

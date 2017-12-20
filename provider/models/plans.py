@@ -1,8 +1,7 @@
 from sqlalchemy import String, Column, Integer
 from sqlalchemy.orm import relationship
 
-from alembic.models.base import BaseBase, make_join_table
-from alembic.models.providers import Provider
+from provider.models.base import BaseBase, make_join_table
 
 provider_plan_table = make_join_table("provider", "plan")
 
@@ -30,5 +29,5 @@ class Plan(BaseBase):
     # A plan-specific code sometimes used to search the API
     original_code = Column(String(64))
 
-    providers = relationship(Provider, secondary=provider_plan_table,
+    providers = relationship("Provider", secondary=provider_plan_table,
                              back_populates="accepted_plans")

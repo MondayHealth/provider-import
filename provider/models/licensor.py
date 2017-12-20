@@ -1,8 +1,7 @@
 from sqlalchemy import String, Column
 from sqlalchemy.orm import relationship
 
-from alembic.models.base import BaseBase
-from alembic.models.license import License
+from provider.models.base import BaseBase
 
 
 class Licensor(BaseBase):
@@ -10,4 +9,4 @@ class Licensor(BaseBase):
 
     locale = Column(String())
 
-    licensees = relationship(License, back_populates="licensor")
+    licensees = relationship("License", back_populates="licensor")

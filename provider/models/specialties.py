@@ -1,10 +1,9 @@
-from sqlalchemy import Column, String, Boolean, Integer, Table
+from sqlalchemy import Column, String, Boolean, Integer
 from sqlalchemy.orm import relationship
 
-from alembic.models.base import BaseBase
-from alembic.models.providers import Provider
+from provider.models.base import BaseBase, make_join_table
 
-provider_speciality_table = Table("provider", "specialty")
+provider_speciality_table = make_join_table("provider", "specialty")
 
 
 class Specialty(BaseBase):
@@ -28,5 +27,5 @@ class Specialty(BaseBase):
     #
     alias_id = Column(Integer())
 
-    providers = relationship(Provider, secondary=provider_speciality_table,
+    providers = relationship("Provider", secondary=provider_speciality_table,
                              back_populates="specialties")

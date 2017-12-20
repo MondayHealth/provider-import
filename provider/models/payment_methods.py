@@ -1,8 +1,7 @@
 from sqlalchemy import String, Column
 from sqlalchemy.orm import relationship
 
-from alembic.models.base import BaseBase, make_join_table
-from alembic.models.providers import Provider
+from provider.models.base import BaseBase, make_join_table
 
 provider_method_table = make_join_table("provider", "payment_method")
 
@@ -12,5 +11,5 @@ class PaymentMethod(BaseBase):
 
     name = Column(String(32), nullable=False)
 
-    providers = relationship(Provider, secondary=provider_method_table,
+    providers = relationship("Provider", secondary=provider_method_table,
                              back_populates="payment_methods")

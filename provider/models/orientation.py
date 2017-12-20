@@ -1,8 +1,7 @@
 from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
 
-from alembic.models.base import BaseBase, make_join_table
-from alembic.models.providers import Provider
+from provider.models.base import BaseBase, make_join_table
 
 provider_orientation_table = make_join_table("provider", "orientation")
 
@@ -14,6 +13,6 @@ class Orientation(BaseBase):
     """
     name = Column(String(128), nullable=False)
 
-    providers = relationship(Provider,
+    providers = relationship("Provider",
                              secondary=provider_orientation_table,
                              back_populates="treatment_orientation")

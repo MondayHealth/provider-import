@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, Integer, ForeignKey
 
-from alembic.models.base import BaseBase
+from provider.models.base import BaseBase
 
 
 class Location(BaseBase):

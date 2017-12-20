@@ -1,8 +1,7 @@
 from sqlalchemy import String, Column
 from sqlalchemy.orm import relationship
 
-from alembic.models.base import BaseBase, make_join_table
-from alembic.models.providers import Provider
+from provider.models.base import BaseBase, make_join_table
 
 provider_credential_table = make_join_table("provider", "credential")
 
@@ -13,5 +12,5 @@ class Credential(BaseBase):
     """
     name = Column(String(64))
 
-    providers = relationship(Provider, secondary=provider_credential_table,
+    providers = relationship("Provider", secondary=provider_credential_table,
                              back_populates="credentials")

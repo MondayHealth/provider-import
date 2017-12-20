@@ -1,9 +1,7 @@
 from sqlalchemy import String, Column, Integer, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 
-from alembic.models.base import BaseBase
-from alembic.models.licensor import Licensor
-from alembic.models.providers import Provider
+from provider.models.base import BaseBase
 
 
 class License(BaseBase):
@@ -15,6 +13,6 @@ class License(BaseBase):
 
     licensee_id = Column(Integer, ForeignKey("provider.id"), primary_key=True)
 
-    licensor = relationship(Licensor, back_populates="licensees")
+    licensor = relationship("Licensor", back_populates="licensees")
 
-    licensee = relationship(Provider, back_populates="licenses")
+    licensee = relationship("Provider", back_populates="licenses")

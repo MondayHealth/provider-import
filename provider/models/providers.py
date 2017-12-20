@@ -2,17 +2,17 @@ from sqlalchemy import String, Column, ForeignKey, Integer, Text, Boolean, \
     DateTime
 from sqlalchemy.orm import relationship
 
-from alembic.models.base import BaseBase
-from alembic.models.credential import Credential, provider_credential_table
-from alembic.models.groups import group_provider_table, Group
-from alembic.models.language import Language, provider_language_table
-from alembic.models.license import License
-from alembic.models.modalities import Modality, modality_provider_table
-from alembic.models.orientation import Orientation, orientation_provider_table
-from alembic.models.payment_methods import PaymentMethod, provider_method_table
-from alembic.models.payors import Payor, payor_provider_table
-from alembic.models.plans import provider_plan_table, Plan
-from alembic.models.specialties import Specialty, providers_specialties_table
+from provider.models.base import BaseBase
+from provider.models.credential import Credential, provider_credential_table
+from provider.models.groups import provider_group_table, Group
+from provider.models.language import Language, provider_language_table
+from provider.models.license import License
+from provider.models.modalities import Modality, provider_modality_table
+from provider.models.orientation import Orientation, provider_orientation_table
+from provider.models.payment_methods import PaymentMethod, provider_method_table
+from provider.models.payors import Payor, provider_payor_table
+from provider.models.plans import provider_plan_table, Plan
+from provider.models.specialties import Specialty, provider_speciality_table
 
 
 def _relate(cls, table):
@@ -103,14 +103,14 @@ class Provider(BaseBase):
 
     plans_accepted = _relate(Plan, provider_plan_table)
 
-    specialties = _relate(Specialty, providers_specialties_table)
+    specialties = _relate(Specialty, provider_speciality_table)
 
     languages = _relate(Language, provider_language_table)
 
-    treatment_orientations = _relate(Orientation, orientation_provider_table)
+    treatment_orientations = _relate(Orientation, provider_orientation_table)
 
-    groups = _relate(Group, group_provider_table)
+    groups = _relate(Group, provider_group_table)
 
-    accepted_payors = _relate(Payor, payor_provider_table)
+    accepted_payors = _relate(Payor, provider_payor_table)
 
-    modalities = _relate(Modality, modality_provider_table)
+    modalities = _relate(Modality, provider_modality_table)
