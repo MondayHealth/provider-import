@@ -68,7 +68,7 @@ class Provider(Base):
 
     last_name = Column(String(64), nullable=False)
 
-    # address_id = Column(Integer, ForeignKey("address.id"), nullable=False)
+    address_id = Column(Integer, ForeignKey("address.id"), nullable=False)
 
     minimum_fee = Column(Integer())
 

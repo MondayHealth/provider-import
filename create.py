@@ -42,8 +42,8 @@ class Util:
         if self._schema_exists():
             print("Dropping all records, tables, and types!")
             Base.metadata.drop_all()
-            self.engine.execute(DropSchema(self.schema_name))
+            #self.engine.execute(DropSchema(self.schema_name))
 
 
 if __name__ == "__main__":
-    Util().create()
+    Util().destroy()
