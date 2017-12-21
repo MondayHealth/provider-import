@@ -2,7 +2,7 @@ import configparser
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import reflection
-from sqlalchemy.sql.ddl import CreateSchema, DropSchema
+from sqlalchemy.sql.ddl import CreateSchema
 
 from provider.models.base import Base
 
@@ -42,7 +42,7 @@ class Util:
         if self._schema_exists():
             print("Dropping all records, tables, and types!")
             Base.metadata.drop_all()
-            #self.engine.execute(DropSchema(self.schema_name))
+            # self.engine.execute(DropSchema(self.schema_name))
 
 
 if __name__ == "__main__":
