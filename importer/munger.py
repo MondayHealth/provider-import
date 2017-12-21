@@ -11,6 +11,7 @@ from importer.loader import RawTable
 from provider.models.directories import Directory
 from provider.models.payors import Payor
 from provider.models.plans import Plan
+from provider.models.providers import Provider
 
 
 def de_camel(name):
@@ -50,6 +51,16 @@ def _locations(table: RawTable) -> None:
     print()
     print("address types:", types)
     print("failed to parse", len(failures), "addresses")
+
+
+def _provider(table: RawTable, session: Session) -> None:
+    columns, rows = table.get_table_components()
+    i = 0
+    bar = progressbar.ProgressBar(max_value=len(rows))
+    for row in rows:
+        provider = Provider(**row)
+        bar.update(i)
+        i = i + 1
 
 
 def _directories(table: RawTable, session: Session) -> None:
@@ -102,7 +113,7 @@ class Munger:
         # _locations(tables['locations'])
         session: Session = self._Session()
         _directories(tables['directories'], session)
-        #_payors(tables['payors'], session)
-        #_plans(tables['plans'], session)
+        # _payors(tables['payors'], session)
+        # _plans(tables['plans'], session)
         session.commit()
         session.close()

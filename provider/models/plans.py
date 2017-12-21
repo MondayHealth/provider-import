@@ -30,4 +30,4 @@ class Plan(Base):
     original_code = Column(String(64))
 
     providers = relationship("Provider", secondary=provider_plan_table,
-                             back_populates="accepted_plans")
+                             back_populates="plans_accepted")

@@ -15,4 +15,4 @@ class Orientation(Base):
 
     providers = relationship("Provider",
                              secondary=provider_orientation_table,
-                             back_populates="treatment_orientation")
+                             back_populates="treatment_orientations")
