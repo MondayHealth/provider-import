@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from provider.models.address import phone_address_table
 from provider.models.base import Base, make_join_table
 
-provider_phone_table = make_join_table("provider", "address")
+provider_phone_table = make_join_table("provider", "phone")
 
 
 class Phone(Base):

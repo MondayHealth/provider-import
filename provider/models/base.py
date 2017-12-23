@@ -36,8 +36,7 @@ def _pluralize(word: str) -> str:
         ret = word[:-1] + "ies"
     if word[-2:] == "ss":
         ret = word + "es"
-
-    print("plural of", word, "is", ret)
+    # print("plural of", word, "is", ret)
     return ret
 
 
