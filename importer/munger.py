@@ -1,15 +1,16 @@
 import configparser
+import datetime
 import re
 from collections import OrderedDict
 from typing import Mapping, Tuple, List, Union, Iterable
 
-import datetime
 import phonenumbers
 import progressbar
 from phonenumbers import PhoneNumber, NumberParseException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, Session
 
+from db_url import DB_URL
 from importer.loader import RawTable
 from provider.models.address import Address
 from provider.models.directories import Directory
@@ -88,12 +89,13 @@ def _provider(table: RawTable, session: Session) -> Iterable[OrderedDict]:
     bar = progressbar.ProgressBar(max_value=len(rows))
     for row in rows:
         addresses, numbers = _mux_addy_phone(row['address'], row['phone'])
-        ctime = getattr(row, 'created_at', now)
-        mtime = getattr(row, 'updated_at', now)
+        ctime = row['created_at']
+        mtime = row['updated_at']
+        sua = row['source_updated_at']
         provider = Provider(id=row['id'],
-                            created_at=ctime,
-                            updated_at=mtime,
-                            source_updated_at=row['source_updated_at'],
+                            created_at=ctime if ctime else now,
+                            updated_at=mtime if mtime else now,
+                            source_updated_at=sua if sua else None,
                             first_name=row['first_name'],
                             last_name=row['last_name'])
         for address in addresses:
@@ -148,7 +150,7 @@ class Munger:
     def __init__(self):
         config = configparser.ConfigParser()
         config.read("alembic.ini")
-        url = config['alembic']['sqlalchemy.url']
+        url = DB_URL
         print("Creating engine at", url)
         self._engine = create_engine(url, echo=ECHO_SQL)
         session_factory = sessionmaker(bind=self._engine)

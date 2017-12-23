@@ -7,6 +7,8 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+from db_url import DB_URL
+
 package_parent = '..'
 script_dir = os.path.dirname(
     os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
@@ -56,7 +58,7 @@ def run_migrations_offline():
     script output.
 
     """
-    configure_options['url'] = config.get_main_option("sqlalchemy.url")
+    configure_options['url'] = DB_URL
     context.configure(**configure_options)
 
     with context.begin_transaction():

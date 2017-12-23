@@ -1,3 +1,5 @@
+import datetime
+
 from sqlalchemy import Column, Integer, DateTime, Table, ForeignKey
 from sqlalchemy.ext.declarative import declared_attr, declarative_base
 
@@ -11,11 +13,11 @@ class BaseBase:
 
     id = Column(Integer, primary_key=True)
 
-    #
-    created_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow,
+                        nullable=False)
 
-    #
-    updated_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow,
+                        nullable=False)
 
     @declared_attr
     def __tablename__(self) -> str:
