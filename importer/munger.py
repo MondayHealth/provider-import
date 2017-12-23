@@ -10,7 +10,7 @@ from phonenumbers import PhoneNumber, NumberParseException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, Session
 
-from db_url import DB_URL
+from db_url import get_db_url
 from importer.loader import RawTable
 from provider.models.address import Address
 from provider.models.directories import Directory
@@ -150,7 +150,7 @@ class Munger:
     def __init__(self):
         config = configparser.ConfigParser()
         config.read("alembic.ini")
-        url = DB_URL
+        url = get_db_url()
         print("Creating engine at", url)
         self._engine = create_engine(url, echo=ECHO_SQL)
         session_factory = sessionmaker(bind=self._engine)
