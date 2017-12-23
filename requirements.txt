@@ -2,6 +2,7 @@ alembic==0.9.6
 coverage==4.4.2
 Mako==1.0.7
 MarkupSafe==1.0
+phonenumberslite==8.8.8
 progressbar2==3.34.3
 psycopg2==2.7.3.2
 python-dateutil==2.6.1

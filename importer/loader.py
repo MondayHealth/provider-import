@@ -46,7 +46,7 @@ FILES = frozenset([
     "payors",
     "plans",
     #"locations",
-    #"provider_records",
+    "provider_records",
     #"specialties",
     #"providers_specialties"
 ])
