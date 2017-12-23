@@ -96,7 +96,7 @@ def _provider(table: RawTable, session: Session) -> Iterable[OrderedDict]:
             provider.phone_numbers.append(number)
         bar.update(i)
         i = i + 1
-    return row
+    return failed
 
 
 def _directories(table: RawTable, session: Session) -> None:
