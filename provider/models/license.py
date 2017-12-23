@@ -2,6 +2,7 @@ from sqlalchemy import String, Column, Integer, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 
 from provider.models.base import Base
+from provider.models.licensor import Licensor
 
 
 class License(Base):
@@ -13,6 +14,6 @@ class License(Base):
 
     licensee_id = Column(Integer, ForeignKey("provider.id"), primary_key=True)
 
-    licensor = relationship("Licensor", back_populates="licenses")
+    licensor = relationship(Licensor, back_populates="licenses")
 
     licensee = relationship("Provider", back_populates="licenses")

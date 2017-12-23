@@ -30,19 +30,24 @@ Base = declarative_base(cls=BaseBase)
 Base.metadata.schema = "monday"
 
 
+def _pluralize(word: str) -> str:
+    ret = word + "s"
+    if word[-1] == "y":
+        ret = word[:-1] + "ies"
+    if word[-2:] == "ss":
+        ret = word + "es"
+
+    print("plural of", word, "is", ret)
+    return ret
+
+
 def make_join_table(left_in: str, right_in: str) -> Table:
     left = left_in.lower()
     right = right_in.lower()
-    left_plural = left
-    right_plural = right
+    left_plural = _pluralize(left)
+    right_plural = _pluralize(right)
 
-    if left_plural[-1] == "y":
-        left_plural = left_plural[:-1] + "ies"
-
-    if right_plural[-1] == "y":
-        right_plural = right_plural[:-1] + "ies"
-
-    return Table("{}s_{}s".format(left_plural, right_plural),
+    return Table("{}_{}".format(left_plural, right_plural),
                  Base.metadata,
                  Column(left + "_id", Integer, ForeignKey(left + ".id")),
                  Column(right + "_id", Integer, ForeignKey(right + ".id")))

@@ -1,4 +1,4 @@
-from sqlalchemy import String, Column, Integer
+from sqlalchemy import String, Column, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 
 from provider.models.base import Base, make_join_table
@@ -17,8 +17,10 @@ class Plan(Base):
         t.string "original_code"
     """
 
+    payor_id = Column(Integer, ForeignKey("payor.id"), nullable=False)
+
     #
-    name = Column(String(32), nullable=False)
+    name = Column(String(128), nullable=False)
 
     #
     url = Column(String(2048), nullable=False)

@@ -1,17 +1,34 @@
 import configparser
 import re
-from typing import Mapping
+from collections import OrderedDict
+from typing import Mapping, Union
 
 import progressbar
-import usaddress
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, Session
 
 from importer.loader import RawTable
+from provider.models.address import Address
 from provider.models.directories import Directory
 from provider.models.payors import Payor
 from provider.models.plans import Plan
 from provider.models.providers import Provider
+
+
+def int_or_none(row: OrderedDict, name: str) -> None:
+    v = row[name]
+    if not v:
+        row[name] = None
+    else:
+        row[name] = int(v)
+
+
+def str_or_none(row: OrderedDict, name: str) -> None:
+    v = row[name]
+    if not v:
+        row[name] = None
+    else:
+        row[name] = str(v)
 
 
 def de_camel(name):
@@ -19,38 +36,7 @@ def de_camel(name):
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
-def _locations(table: RawTable) -> None:
-    parts = {}
-    types = {}
-    failures = []
-    columns, rows = table.get_table_components()
-    i = 0
-    bar = progressbar.ProgressBar(max_value=len(rows))
-    for row in rows:
-        try:
-            tag, address_type = usaddress.tag(row["address"])
-        except usaddress.RepeatedLabelError as e:
-            failures.append((row, e.MESSAGE))
-            continue
-
-        if address_type not in types:
-            types[address_type] = 0
-        else:
-            types[address_type] = types[address_type] + 1
-
-        for key, val in tag.items():
-            dc_key = de_camel(key)
-            if dc_key not in parts:
-                parts[dc_key] = len(val)
-            else:
-                parts[dc_key] = max(len(val), parts[dc_key])
-
-        bar.update(i)
-        i = i + 1
-
-    print()
-    print("address types:", types)
-    print("failed to parse", len(failures), "addresses")
+def parse_locations(raw: str, session: Session) -> Union[Address, None]:
 
 
 def _provider(table: RawTable, session: Session) -> None:
@@ -58,6 +44,11 @@ def _provider(table: RawTable, session: Session) -> None:
     i = 0
     bar = progressbar.ProgressBar(max_value=len(rows))
     for row in rows:
+        raw = row['address'].strip()
+        address = session.merge(Address(raw=raw))
+
+        row['address'] = address
+
         provider = Provider(**row)
         bar.update(i)
         i = i + 1
@@ -68,20 +59,18 @@ def _directories(table: RawTable, session: Session) -> None:
     i = 0
     bar = progressbar.ProgressBar(max_value=len(rows))
     for row in rows:
-        directory = Directory(**row)
-        session.add(directory)
+        int_or_none(row, 'record_limit')
+        session.merge(Directory(**row))
         bar.update(i)
         i = i + 1
 
 
 def _payors(table: RawTable, session: Session) -> None:
     columns, rows = table.get_table_components()
-    print(columns)
     i = 0
     bar = progressbar.ProgressBar(max_value=len(rows))
     for row in rows:
-        payor = Payor(**row)
-        session.add(payor)
+        session.merge(Payor(**row))
         bar.update(i)
         i = i + 1
 
@@ -91,8 +80,9 @@ def _plans(table: RawTable, session: Session) -> None:
     i = 0
     bar = progressbar.ProgressBar(max_value=len(rows))
     for row in rows:
-        plan = Plan(**row)
-        session.add(plan)
+        int_or_none(row, 'record_limit')
+        str_or_none(row, 'original_code')
+        session.merge(Plan(**row))
         bar.update(i)
         i = i + 1
 
@@ -113,7 +103,13 @@ class Munger:
         # _locations(tables['locations'])
         session: Session = self._Session()
         _directories(tables['directories'], session)
-        # _payors(tables['payors'], session)
-        # _plans(tables['plans'], session)
+        _payors(tables['payors'], session)
+        _plans(tables['plans'], session)
         session.commit()
         session.close()
+
+        # Clean up
+        print()
+        print("Calling ANALYZE...")
+        self._engine.execute("ANALYZE;")
+        print("Done.")

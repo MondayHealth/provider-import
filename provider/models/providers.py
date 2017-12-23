@@ -1,21 +1,29 @@
+from typing import Type
+
 from sqlalchemy import String, Column, ForeignKey, Integer, Text, Boolean, \
     DateTime, Table
+from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import relationship
 
+from provider.models.address import Address, provider_address_table
 from provider.models.base import Base
-from provider.models.credential import provider_credential_table
-from provider.models.groups import provider_group_table
-from provider.models.language import provider_language_table
-from provider.models.modalities import provider_modality_table
-from provider.models.orientation import provider_orientation_table
-from provider.models.payment_methods import provider_method_table
-from provider.models.payors import provider_payor_table
-from provider.models.plans import provider_plan_table
-from provider.models.specialties import provider_speciality_table
+from provider.models.credential import provider_credential_table, Credential
+from provider.models.groups import provider_group_table, Group
+from provider.models.language import provider_language_table, Language
+from provider.models.license import License
+from provider.models.modalities import provider_modality_table, Modality
+from provider.models.orientation import provider_orientation_table, Orientation
+from provider.models.payment_methods import provider_method_table, PaymentMethod
+from provider.models.payors import provider_payor_table, Payor
+from provider.models.phones import Phone, provider_phone_table
+from provider.models.plans import provider_plan_table, Plan
+from provider.models.specialties import provider_speciality_table, Specialty
 
 
-def _relate(cls: str, table: Table):
-    return relationship(cls, secondary=table, back_populates="providers")
+def _relate(cls: Type[DeclarativeMeta], table: Table):
+    return relationship(cls.__name__,
+                        secondary=table,
+                        back_populates="providers")
 
 
 class Provider(Base):
@@ -68,8 +76,6 @@ class Provider(Base):
 
     last_name = Column(String(64), nullable=False)
 
-    address_id = Column(Integer, ForeignKey("address.id"), nullable=False)
-
     minimum_fee = Column(Integer())
 
     maximum_fee = Column(Integer())
@@ -94,22 +100,26 @@ class Provider(Base):
     works_with_ages = Column(Text())
 
     # Custom association
-    licenses = relationship("License", back_populates="licensee")
+    licenses = relationship(License, back_populates="licensee")
 
-    credentials = _relate("Credential", provider_credential_table)
+    addresses = _relate(Address, provider_address_table)
 
-    payment_methods = _relate("PaymentMethod", provider_method_table)
+    phone_numbers = _relate(Phone, provider_phone_table)
 
-    plans_accepted = _relate("Plan", provider_plan_table)
+    credentials = _relate(Credential, provider_credential_table)
 
-    specialties = _relate("Specialty", provider_speciality_table)
+    payment_methods = _relate(PaymentMethod, provider_method_table)
 
-    languages = _relate("Language", provider_language_table)
+    plans_accepted = _relate(Plan, provider_plan_table)
 
-    treatment_orientations = _relate("Orientation", provider_orientation_table)
+    specialties = _relate(Specialty, provider_speciality_table)
 
-    groups = _relate("Group", provider_group_table)
+    languages = _relate(Language, provider_language_table)
 
-    accepted_payors = _relate("Payor", provider_payor_table)
+    treatment_orientations = _relate(Orientation, provider_orientation_table)
 
-    modalities = _relate("Modality", provider_modality_table)
+    groups = _relate(Group, provider_group_table)
+
+    accepted_payors = _relate(Payor, provider_payor_table)
+
+    modalities = _relate(Modality, provider_modality_table)
