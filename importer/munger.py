@@ -3,6 +3,7 @@ import re
 from collections import OrderedDict
 from typing import Mapping, Tuple, List, Union, Iterable
 
+import datetime
 import phonenumbers
 import progressbar
 from phonenumbers import PhoneNumber, NumberParseException
@@ -81,12 +82,20 @@ def _mux_addy_phone(raw_address: str, raw_phone: str) -> \
 
 def _provider(table: RawTable, session: Session) -> Iterable[OrderedDict]:
     columns, rows = table.get_table_components()
+    now = datetime.datetime.utcnow()
     i = 0
     failed = []
     bar = progressbar.ProgressBar(max_value=len(rows))
     for row in rows:
         addresses, numbers = _mux_addy_phone(row['address'], row['phone'])
-        provider = Provider()
+        ctime = getattr(row, 'created_at', now)
+        mtime = getattr(row, 'updated_at', now)
+        provider = Provider(id=row['id'],
+                            created_at=ctime,
+                            updated_at=mtime,
+                            source_updated_at=row['source_updated_at'],
+                            first_name=row['first_name'],
+                            last_name=row['last_name'])
         for address in addresses:
             provider.addresses.append(address)
         for number in numbers:
@@ -94,6 +103,7 @@ def _provider(table: RawTable, session: Session) -> Iterable[OrderedDict]:
                 failed.append(row)
                 continue
             provider.phone_numbers.append(number)
+        session.merge(provider)
         bar.update(i)
         i = i + 1
     return failed
@@ -145,7 +155,6 @@ class Munger:
         self._Session = scoped_session(session_factory)
 
     def munge(self, tables: Mapping[str, RawTable]) -> None:
-        # _locations(tables['locations'])
         session: Session = self._Session()
         _directories(tables['directories'], session)
         _payors(tables['payors'], session)
