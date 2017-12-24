@@ -21,3 +21,4 @@ class Address(Base):
 
     phone_numbers = relationship("Phone", secondary=phone_address_table,
                                  back_populates="addresses")
+

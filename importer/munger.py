@@ -2,7 +2,7 @@ import configparser
 import datetime
 import re
 from collections import OrderedDict
-from typing import Mapping, Tuple, List, Union, Iterable
+from typing import Mapping, Tuple, List, Union, Iterable, Any
 
 import phonenumbers
 import progressbar
@@ -43,22 +43,45 @@ def de_camel(name):
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
-def _new_phone_from_raw(raw: str) -> Union[Phone, None]:
+def _phone_or_new(raw: str, session: Session) -> Union[Phone, None]:
     try:
         v: PhoneNumber = phonenumbers.parse(raw, "US")
     except NumberParseException:
         return None
+    if v.national_number > 9999999999:
+        print('Skipping bad pn: ' + raw)
+        return None
     out = str(v.national_number)
     try:
-        return Phone(npa=int(out[3:]),
+        inst = Phone(npa=int(out[3:]),
                      nxx=int(out[3:6]),
                      xxxx=int(out[:-4]),
                      extension=v.extension)
     except ValueError:
         return None
 
+    found = session.query(Phone).filter_by(npa=inst.npa,
+                                           nxx=inst.nxx,
+                                           xxxx=inst.xxxx,
+                                           extension=inst.extension) \
+        .one_or_none()
 
-def _mux_addy_phone(raw_address: str, raw_phone: str) -> \
+    if not found:
+        session.add(inst)
+        found = inst
+
+    return found
+
+
+def _address_or_new(raw: str, session: Session) -> Address:
+    found = session.query(Address).filter_by(raw=raw).one_or_none()
+    if not found:
+        found = Address(raw=raw)
+        session.add(found)
+    return found
+
+
+def _mux_addy_phone(raw_address: str, raw_phone: str, session: Session) -> \
         Tuple[List[Address], List[Phone]]:
     a_tokens = raw_address.strip().split("\n")
     addresses = []
@@ -66,19 +89,28 @@ def _mux_addy_phone(raw_address: str, raw_phone: str) -> \
     current = ''
     for token in a_tokens:
         if not token:
-            addresses.append(Address(raw=current.strip()))
+            addresses.append(_address_or_new(current.strip(), session))
             current = ''
             continue
         current = current + token.strip() + " "
-    addresses.append(Address(raw=current.strip()))
+    addresses.append(_address_or_new(current.strip(), session))
 
     p_tokens = raw_phone.strip().split("\n")
     for token in p_tokens:
         if not token:
             continue
-        phone_numbers.append(_new_phone_from_raw(token.strip()))
+        phone_numbers.append(_phone_or_new(token.strip(), session))
 
     return addresses, phone_numbers
+
+
+def _og(o_dict: OrderedDict, name: str, default: Any = None) -> None:
+    if name not in o_dict:
+        return default
+    ret = o_dict[name]
+    if ret == '':
+        return None
+    return ret
 
 
 def _provider(table: RawTable, session: Session) -> Iterable[OrderedDict]:
@@ -88,7 +120,9 @@ def _provider(table: RawTable, session: Session) -> Iterable[OrderedDict]:
     failed = []
     bar = progressbar.ProgressBar(max_value=len(rows))
     for row in rows:
-        addresses, numbers = _mux_addy_phone(row['address'], row['phone'])
+        addresses, numbers = _mux_addy_phone(row['address'],
+                                             row['phone'],
+                                             session)
         ctime = row['created_at']
         mtime = row['updated_at']
         sua = row['source_updated_at']
@@ -97,7 +131,8 @@ def _provider(table: RawTable, session: Session) -> Iterable[OrderedDict]:
                             updated_at=mtime if mtime else now,
                             source_updated_at=sua if sua else None,
                             first_name=row['first_name'],
-                            last_name=row['last_name'])
+                            last_name=row['last_name'],
+                            minimum_fee=row['minimum_fee'])
         for address in addresses:
             provider.addresses.append(address)
         for number in numbers:
