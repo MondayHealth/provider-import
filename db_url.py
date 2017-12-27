@@ -5,6 +5,7 @@ BASE_URL = "postgresql://postgres:changeme123@{}:5432/postgres"
 HOSTS = {
     'eddingtonlimit.local': 'localhost',
     'eddingtonlimit.home': 'localhost',
+    'eddingtonlimit': 'localhost',
     'pulsar.local': 'eddingtonlimit.local'
 }
 

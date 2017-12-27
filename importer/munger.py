@@ -2,7 +2,7 @@ import configparser
 import datetime
 import re
 from collections import OrderedDict
-from typing import Mapping, Tuple, List, Union, Iterable, Any
+from typing import Tuple, List, Union, Iterable, Mapping, TypeVar
 
 import phonenumbers
 import progressbar
@@ -104,13 +104,16 @@ def _mux_addy_phone(raw_address: str, raw_phone: str, session: Session) -> \
     return addresses, phone_numbers
 
 
-def _og(o_dict: OrderedDict, name: str, default: Any = None) -> None:
-    if name not in o_dict:
-        return default
-    ret = o_dict[name]
+V = TypeVar(str, bool, int)
+
+
+def _m(m: Mapping, n: str, t: V, d: Union[None, V] = None) -> Union[None, V]:
+    if n not in m:
+        return d
+    ret = m[n]
     if ret == '':
-        return None
-    return ret
+        return d
+    return t(ret)
 
 
 def _provider(table: RawTable, session: Session) -> Iterable[OrderedDict]:
@@ -119,20 +122,34 @@ def _provider(table: RawTable, session: Session) -> Iterable[OrderedDict]:
     i = 0
     failed = []
     bar = progressbar.ProgressBar(max_value=len(rows))
+    things_to_get = {
+        'source_updated_at': str,
+        'first_name': str,
+        'last_name': str,
+        'maximum_fee': int,
+        'minimum_fee': int,
+        'sliding_scale': bool,
+        'free_consultation': bool,
+        'website_url': str,
+        'accepting_new_patients': bool,
+        'began_practice': int,
+        'school': str,
+        'year_graduated': int,
+        'works_with_ages': str
+    }
+
     for row in rows:
+        provider = session.query(Provider).filter_by(id=row['id']).one_or_none()
         addresses, numbers = _mux_addy_phone(row['address'],
                                              row['phone'],
                                              session)
-        ctime = row['created_at']
-        mtime = row['updated_at']
-        sua = row['source_updated_at']
+        args = {}
+        for k, v in things_to_get.items():
+            args[k] = _m(row, k, v)
         provider = Provider(id=row['id'],
-                            created_at=ctime if ctime else now,
-                            updated_at=mtime if mtime else now,
-                            source_updated_at=sua if sua else None,
-                            first_name=row['first_name'],
-                            last_name=row['last_name'],
-                            minimum_fee=row['minimum_fee'])
+                            created_at=_m(row, 'created_at', str, now),
+                            updated_at=_m(row, 'updated_at', str, now),
+                            **args)
         for address in addresses:
             provider.addresses.append(address)
         for number in numbers:
@@ -143,6 +160,7 @@ def _provider(table: RawTable, session: Session) -> Iterable[OrderedDict]:
         session.merge(provider)
         bar.update(i)
         i = i + 1
+
     return failed
 
 
