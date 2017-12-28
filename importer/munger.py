@@ -139,23 +139,25 @@ class ProviderMunger:
 
     def _mux_addy_phone(self, raw_address: str, raw_phone: str) -> \
             Tuple[List[Address], List[Phone]]:
-        a_tokens = raw_address.strip().split("\n")
+
         addresses = []
         phone_numbers = []
-        current = ''
-        for token in a_tokens:
-            if not token:
-                addresses.append(self._address_or_new(current.strip()))
-                current = ''
-                continue
-            current = current + token.strip() + " "
-        addresses.append(self._address_or_new(current.strip()))
 
-        p_tokens = raw_phone.strip().split("\n")
-        for token in p_tokens:
-            if not token:
-                continue
-            phone_numbers.append(self._phone_or_new(token.strip()))
+        if raw_address:
+            current = ''
+            for token in raw_address.split("\n"):
+                if not token:
+                    addresses.append(self._address_or_new(current.strip()))
+                    current = ''
+                    continue
+                current = current + token.strip() + " "
+            addresses.append(self._address_or_new(current.strip()))
+
+        if raw_phone:
+            for token in raw_phone.split("\n"):
+                if not token:
+                    continue
+                phone_numbers.append(self._phone_or_new(token.strip()))
 
         return addresses, phone_numbers
 
@@ -190,7 +192,7 @@ class ProviderMunger:
         }
 
         for row in rows:
-            # Determine the user ID via license number for dedup
+            # Determine the user ID via license number for dedupe
             license_number = _m(row, 'license_number', str)
             id_via_license = self._find_nysop_license(license_number)
             row_id = id_via_license if id_via_license else row['id']
