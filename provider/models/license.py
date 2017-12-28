@@ -1,4 +1,4 @@
-from sqlalchemy import String, Column, Integer, ForeignKey, DateTime
+from sqlalchemy import String, Column, Integer, ForeignKey, DateTime, Index
 from sqlalchemy.orm import relationship
 
 from provider.models.base import Base
@@ -10,10 +10,17 @@ class License(Base):
 
     granted = Column(DateTime())
 
-    licensor_id = Column(Integer, ForeignKey("licensor.id"), primary_key=True)
+    licensor_id = Column(Integer, ForeignKey("licensor.id"), nullable=False)
 
-    licensee_id = Column(Integer, ForeignKey("provider.id"), primary_key=True)
+    licensee_id = Column(Integer, ForeignKey("provider.id"), nullable=False)
 
     licensor = relationship(Licensor, back_populates="licenses")
 
     licensee = relationship("Provider", back_populates="licenses")
+
+
+Index("ix_monday_license_number_licensor_id_licensee_id",
+      License.number,
+      License.licensor_id,
+      License.licensee_id,
+      unique=True)
