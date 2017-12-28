@@ -7,7 +7,6 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from db_url import get_db_url
 
 package_parent = '..'
 script_dir = os.path.dirname(
@@ -15,6 +14,7 @@ script_dir = os.path.dirname(
 sys.path.append(os.path.normpath(os.path.join(script_dir, package_parent)))
 
 # noinspection PyUnresolvedReferences
+from db_url import get_db_url
 from provider.models import licensor, license, address, directories, providers
 
 # this is the Alembic Config object, which provides
@@ -39,6 +39,7 @@ target_metadata = providers.Provider.metadata
 # Autogeneration information will always be here:
 # http://alembic.zzzcomputing.com/en/latest/autogenerate.html
 configure_options = {
+    'url': get_db_url(),
     'target_metadata': target_metadata,
     'compare_type': True,
     'include_schemas': True,
@@ -58,7 +59,6 @@ def run_migrations_offline():
     script output.
 
     """
-    configure_options['url'] = get_db_url()
     context.configure(**configure_options)
 
     with context.begin_transaction():
@@ -74,6 +74,7 @@ def run_migrations_online():
     """
     connectable = engine_from_config(
         config.get_section(config.config_ini_section),
+        url=get_db_url(),
         prefix='sqlalchemy.',
         poolclass=pool.NullPool)
 
