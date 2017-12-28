@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer
+from sqlalchemy import Column, Integer, Index
 from sqlalchemy.orm import relationship
 
 from provider.models.address import phone_address_table
@@ -32,3 +32,11 @@ class Phone(Base):
         if self.extension is not None:
             val += " +" + str(self.extension)
         return val
+
+
+Index("ix_monday_phone_npa_nxx_xxxx_extension",
+      Phone.npa,
+      Phone.nxx,
+      Phone.xxxx,
+      Phone.extension,
+      unique=True)

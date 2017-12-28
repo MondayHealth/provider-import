@@ -1,14 +1,13 @@
 import configparser
 import datetime
-import re
-from collections import OrderedDict
-from typing import Tuple, List, Union, Iterable, Mapping, TypeVar
-
 import phonenumbers
 import progressbar
+import re
+from collections import OrderedDict
 from phonenumbers import PhoneNumber, NumberParseException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, Session
+from typing import Tuple, List, Union, Iterable, Mapping, TypeVar
 
 from db_url import get_db_url
 from importer.loader import RawTable
@@ -53,9 +52,9 @@ def _phone_or_new(raw: str, session: Session) -> Union[Phone, None]:
         return None
     out = str(v.national_number)
     try:
-        inst = Phone(npa=int(out[3:]),
+        inst = Phone(npa=int(out[:3]),
                      nxx=int(out[3:6]),
-                     xxxx=int(out[:-4]),
+                     xxxx=int(out[-4:]),
                      extension=v.extension)
     except ValueError:
         return None
@@ -75,9 +74,11 @@ def _phone_or_new(raw: str, session: Session) -> Union[Phone, None]:
 
 def _address_or_new(raw: str, session: Session) -> Address:
     found = session.query(Address).filter_by(raw=raw).one_or_none()
+
     if not found:
         found = Address(raw=raw)
         session.add(found)
+
     return found
 
 
@@ -144,11 +145,13 @@ def _provider(table: RawTable, session: Session) -> Iterable[OrderedDict]:
         for k, v in things_to_get.items():
             args[k] = _m(row, k, v)
 
-        # Try updating
+        addresses, numbers = _mux_addy_phone(row['address'],
+                                             row['phone'],
+                                             session)
+
         updated = session.query(Provider).filter_by(id=row_id).update(args)
 
         if updated == 0:
-            print("New provider ID", row_id)
             provider = Provider(id=row_id,
                                 created_at=_m(row, 'created_at', str, now),
                                 updated_at=_m(row, 'updated_at', str, now),
@@ -158,10 +161,6 @@ def _provider(table: RawTable, session: Session) -> Iterable[OrderedDict]:
             provider = session.query(Provider).filter_by(
                 id=row_id).one_or_none()
 
-        addresses, numbers = _mux_addy_phone(row['address'],
-                                             row['phone'],
-                                             session)
-
         for address in addresses:
             provider.addresses.append(address)
         for number in numbers:
@@ -169,11 +168,9 @@ def _provider(table: RawTable, session: Session) -> Iterable[OrderedDict]:
                 failed.append(row)
                 continue
             provider.phone_numbers.append(number)
+        session.commit()
         bar.update(i)
         i = i + 1
-
-        if i % 1000 == 0:
-            session.flush()
 
     return failed
 
@@ -222,18 +219,14 @@ class Munger:
         self._engine = create_engine(url, echo=ECHO_SQL)
         session_factory = sessionmaker(bind=self._engine)
         self._Session = scoped_session(session_factory)
-        self._Session.configure(autoflush=False, expire_on_commit=False)
+        self._Session.configure()
 
     def munge(self, tables: Mapping[str, RawTable]) -> None:
         session: Session = self._Session()
         _directories(tables['directories'], session)
-        session.flush()
         _payors(tables['payors'], session)
-        session.flush()
         _plans(tables['plans'], session)
-        session.flush()
         failed = _provider(tables['provider_records'], session)
-        session.flush()
         session.commit()
         session.close()
 
