@@ -16,41 +16,38 @@ from provider.models.plans import Plan
 ECHO_SQL = False
 
 
-def _directories(table: RawTable, session: Session) -> None:
-    columns, rows = table.get_table_components()
-    i = 0
-    bar = progressbar.ProgressBar(max_value=len(rows))
-    for row in rows:
-        mutate(row, 'record_limit', int)
-        session.merge(Directory(**row))
-        bar.update(i)
-        i = i + 1
-
-
-def _payors(table: RawTable, session: Session) -> None:
-    columns, rows = table.get_table_components()
-    i = 0
-    bar = progressbar.ProgressBar(max_value=len(rows))
-    for row in rows:
-        session.merge(Payor(**row))
-        bar.update(i)
-        i = i + 1
-
-
-def _plans(table: RawTable, session: Session) -> None:
-    columns, rows = table.get_table_components()
-    i = 0
-    bar = progressbar.ProgressBar(max_value=len(rows))
-    for row in rows:
-        mutate(row, 'record_limit', int)
-        mutate(row, 'original_code', str)
-        session.merge(Plan(**row))
-        bar.update(i)
-        i = i + 1
-
-
 class Munger:
     """ Take a bunch of raw tables and create a bulk insertion """
+
+    def _directories(self, table: RawTable) -> None:
+        columns, rows = table.get_table_components()
+        i = 0
+        bar = progressbar.ProgressBar(max_value=len(rows))
+        for row in rows:
+            mutate(row, 'record_limit', int)
+            self._session.merge(Directory(**row))
+            bar.update(i)
+            i = i + 1
+
+    def _payors(self, table: RawTable) -> None:
+        columns, rows = table.get_table_components()
+        i = 0
+        bar = progressbar.ProgressBar(max_value=len(rows))
+        for row in rows:
+            self._session.merge(Payor(**row))
+            bar.update(i)
+            i = i + 1
+
+    def _plans(self, table: RawTable) -> None:
+        columns, rows = table.get_table_components()
+        i = 0
+        bar = progressbar.ProgressBar(max_value=len(rows))
+        for row in rows:
+            mutate(row, 'record_limit', int)
+            mutate(row, 'original_code', str)
+            self._session.merge(Plan(**row))
+            bar.update(i)
+            i = i + 1
 
     def __init__(self):
         config = configparser.ConfigParser()
@@ -61,19 +58,17 @@ class Munger:
         session_factory = sessionmaker(bind=self._engine)
         self._Session = scoped_session(session_factory)
         self._Session.configure()
+        self._session: Session = self._Session()
 
-    def munge(self, tables: Mapping[str, RawTable]) -> None:
-        session: Session = self._Session()
-        _directories(tables['directories'], session)
-        _payors(tables['payors'], session)
-        _plans(tables['plans'], session)
-        session.commit()
+    def load_providers(self, tables: Mapping[str, RawTable]) -> None:
+        self._directories(tables['directories'])
+        self._payors(tables['payors'])
+        self._plans(tables['plans'])
+        self._session.commit()
 
-        pm = ProviderMunger(session)
+        pm = ProviderMunger(self._session)
         failed = pm.load_table(tables['provider_records'])
-        session.commit()
-
-        session.close()
+        self._session.commit()
 
         # Clean up
         print()
@@ -84,3 +79,4 @@ class Munger:
         print("Failed:")
         for row in failed:
             print(row)
+

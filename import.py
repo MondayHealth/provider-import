@@ -7,7 +7,7 @@ def run_from_command_line() -> None:
     loader: CSVLoader = CSVLoader(base_path)
     loader.load()
     munger: Munger = Munger()
-    munger.munge(loader.get_tables())
+    munger.load_providers(loader.get_tables())
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 import datetime
+from typing import Union, List
 
-from sqlalchemy import Column, Integer, DateTime, Table, ForeignKey
+from sqlalchemy import Column, Integer, DateTime, Table, ForeignKey, \
+    UniqueConstraint
 from sqlalchemy.ext.declarative import declared_attr, declarative_base
 
 
@@ -42,13 +44,22 @@ def _pluralize(word: str) -> str:
     return ret
 
 
-def make_join_table(left_in: str, right_in: str) -> Table:
+def make_join_table(left_in: str, right_in: str, unique: bool = True) -> Table:
     left = left_in.lower()
     right = right_in.lower()
     left_plural = _pluralize(left)
     right_plural = _pluralize(right)
 
-    return Table("{}_{}".format(left_plural, right_plural),
-                 Base.metadata,
-                 Column(left + "_id", Integer, ForeignKey(left + ".id")),
-                 Column(right + "_id", Integer, ForeignKey(right + ".id")))
+    left_column_name = left + "_id"
+    right_column_name = right + "_id"
+    table_name = "{}_{}".format(left_plural, right_plural)
+
+    params: List[Union[Column, UniqueConstraint]] = [
+        Column(left_column_name, Integer, ForeignKey(left + ".id")),
+        Column(right_column_name, Integer, ForeignKey(right + ".id"))
+    ]
+
+    if unique:
+        params += [UniqueConstraint(left_column_name, right_column_name)]
+
+    return Table(table_name, Base.metadata, *params)
