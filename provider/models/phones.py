@@ -40,3 +40,12 @@ Index("ix_monday_phone_npa_nxx_xxxx_extension",
       Phone.xxxx,
       Phone.extension,
       unique=True)
+
+# Nulls are not compared so you could add the same npa-nxx-xxxx if ext is null
+# Solve this with a secondary index
+Index("ix_monday_phone_npa_nxx_xxxx_null",
+      Phone.npa,
+      Phone.nxx,
+      Phone.xxxx,
+      unique=True,
+      postgresql_where=Phone.extension.is_(None))

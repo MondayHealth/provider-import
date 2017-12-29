@@ -1,5 +1,4 @@
 import configparser
-import datetime
 import re
 from collections import OrderedDict
 from typing import Tuple, List, Union, Iterable, Mapping, TypeVar
@@ -72,8 +71,40 @@ def _m(m: Mapping, n: str, t: V, d: Union[None, V] = None) -> Union[None, V]:
     return None if ret is '' else t(ret)
 
 
+def _clean_pn(raw: str) -> Union[str, None]:
+    """
+    Try to recover from
+
+    (212) 947-7111 ext. EXT 528
+    (718) 583-0174 ext. X233
+    (718) 261-3330 ext. EXT221
+
+    :param raw: the problem pn
+    :return: a fixed one or none
+    """
+    return raw.replace("ext.", "")
+
+
 class ProviderMunger:
     NYSOP_NAME = "New York State Office of the Professions"
+
+    ROW_FIELDS = {
+        'source_updated_at': str,
+        'created_at': str,
+        'updated_at': str,
+        'first_name': str,
+        'last_name': str,
+        'maximum_fee': int,
+        'minimum_fee': int,
+        'sliding_scale': bool,
+        'free_consultation': bool,
+        'website_url': str,
+        'accepting_new_patients': bool,
+        'began_practice': int,
+        'school': str,
+        'year_graduated': int,
+        'works_with_ages': str
+    }
 
     def __init__(self, session: Session):
         self._session: Session = session
@@ -103,27 +134,29 @@ class ProviderMunger:
             return None
 
         if v.national_number > 9999999999:
-            print('Skipping bad pn', raw)
-            return None
+            cleaned = _clean_pn(raw)
+            if cleaned:
+                try:
+                    v: PhoneNumber = phonenumbers.parse(cleaned, "US")
+                except NumberParseException:
+                    print('Skipping bad pn', raw)
+                    return None
 
         out = str(v.national_number)
-        try:
-            inst = Phone(npa=int(out[:3]),
-                         nxx=int(out[3:6]),
-                         xxxx=int(out[-4:]),
-                         extension=v.extension)
-        except ValueError:
-            print("Value Error", raw)
-            return None
 
-        found = self._session.query(Phone).filter_by(npa=inst.npa,
-                                                     nxx=inst.nxx,
-                                                     xxxx=inst.xxxx,
-                                                     extension=inst.extension) \
-            .one_or_none()
+        args = {
+            'npa': int(out[:3]),
+            'nxx': int(out[3:6]),
+            'xxxx': int(out[-4:]),
+            'extension': v.extension
+        }
+
+        found = self._session.query(Phone).filter_by(**args).one_or_none()
 
         if not found:
+            inst = Phone(**args)
             self._session.add(inst)
+            #self._session.commit()
             found = inst
 
         return found
@@ -134,6 +167,7 @@ class ProviderMunger:
         if not found:
             found = Address(raw=raw)
             self._session.add(found)
+            #self._session.commit()
 
         return found
 
@@ -157,83 +191,56 @@ class ProviderMunger:
             for token in raw_phone.split("\n"):
                 if not token:
                     continue
-                phone_numbers.append(self._phone_or_new(token.strip()))
+                np = self._phone_or_new(token.strip())
+                if np:
+                    phone_numbers.append(np)
 
         return addresses, phone_numbers
 
-    def _find_nysop_license(self, licence_number: str) -> Union[int, None]:
-        if not licence_number:
-            return None
-        q = self._session.query(License).filter_by(number=licence_number,
-                                                   licensor_id=self._nysop.id)
-        lic = q.options(load_only("licensor_id")).one_or_none()
-        return lic.licensor_id if lic else None
+    def _upsert_row(self, row: Mapping) -> None:
+        license_number = _m(row, 'license_number', str)
+        row_id = _m(row, 'id', int)
+
+        # Try to find a license number
+        lic: Union[License, None] = None
+        if license_number:
+            q = self._session.query(License)
+            q = q.filter_by(number=license_number, licensor_id=self._nysop.id)
+            lic = q.options(load_only("licensee_id")).one_or_none()
+            if lic:
+                row_id = lic.licensee_id
+
+        # Make the new provider record
+        args = {}
+        for k, v in self.ROW_FIELDS.items():
+            val = _m(row, k, v)
+            if val is not None:
+                args[k] = val
+        provider = Provider(id=row_id, **args)
+        provider = self._session.merge(provider)
+
+        # Break up the addy and phones and insert them
+        raw_addy = _m(row, 'address', str)
+        raw_phone = _m(row, 'phone', str)
+        addresses, numbers = self._mux_addy_phone(raw_addy, raw_phone)
+        provider.addresses = provider.addresses + addresses
+        provider.phone_numbers = provider.phone_numbers + numbers
+
+        # If we haven't created this license yet, do it.
+        if not lic and license_number:
+            lic = License(number=license_number, licensee=provider,
+                          licensor=self._nysop)
+
+            # This should be new
+            self._session.add(lic)
 
     def load_table(self, table: RawTable) -> Iterable[OrderedDict]:
         columns, rows = table.get_table_components()
-        now = datetime.datetime.utcnow()
         i = 0
         failed = []
         bar = progressbar.ProgressBar(max_value=len(rows))
-        things_to_get = {
-            'source_updated_at': str,
-            'first_name': str,
-            'last_name': str,
-            'maximum_fee': int,
-            'minimum_fee': int,
-            'sliding_scale': bool,
-            'free_consultation': bool,
-            'website_url': str,
-            'accepting_new_patients': bool,
-            'began_practice': int,
-            'school': str,
-            'year_graduated': int,
-            'works_with_ages': str
-        }
-
         for row in rows:
-            # Determine the user ID via license number for dedupe
-            license_number = _m(row, 'license_number', str)
-            id_via_license = self._find_nysop_license(license_number)
-            row_id = id_via_license if id_via_license else row['id']
-
-            # transform the row into args that have been coerced to types
-            args = {}
-            for k, v in things_to_get.items():
-                args[k] = _m(row, k, v)
-
-            updated = self._session.query(Provider).filter_by(id=row_id).update(
-                args)
-
-            if updated == 0:
-                provider = Provider(id=row_id,
-                                    created_at=_m(row, 'created_at', str, now),
-                                    updated_at=_m(row, 'updated_at', str, now),
-                                    **args)
-                self._session.add(provider)
-            else:
-                provider = self._session.query(Provider).filter_by(
-                    id=row_id).options(load_only("id")).one_or_none()
-
-            # Break up the addy and phones
-            raw_addy = _m(row, 'address', str)
-            raw_phone = _m(row, 'phone', str)
-            addresses, numbers = self._mux_addy_phone(raw_addy, raw_phone)
-
-            for address in addresses:
-                provider.addresses.append(address)
-            for number in numbers:
-                if number is None:
-                    failed.append(row)
-                    continue
-                provider.phone_numbers.append(number)
-
-            # Check to see if we need to add a license entry
-            if not id_via_license and license_number:
-                lic = License(number=license_number, licensee=provider,
-                              licensor=self._nysop)
-                self._session.add(lic)
-
+            self._upsert_row(row)
             self._session.commit()
             bar.update(i)
             i = i + 1
@@ -292,11 +299,12 @@ class Munger:
         _directories(tables['directories'], session)
         _payors(tables['payors'], session)
         _plans(tables['plans'], session)
+        session.commit()
 
         pm = ProviderMunger(session)
         failed = pm.load_table(tables['provider_records'])
-
         session.commit()
+
         session.close()
 
         # Clean up

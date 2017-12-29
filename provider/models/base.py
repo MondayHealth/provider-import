@@ -17,7 +17,7 @@ class BaseBase:
                         nullable=False)
 
     updated_at = Column(DateTime, default=datetime.datetime.utcnow,
-                        nullable=False)
+                        nullable=False, onupdate=datetime.datetime.utcnow)
 
     @declared_attr
     def __tablename__(self) -> str:
