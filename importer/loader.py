@@ -3,7 +3,6 @@ import os
 from collections import OrderedDict
 from typing import Mapping, List, Tuple
 
-# noinspection PyPackageRequirements
 import progressbar
 
 
@@ -45,10 +44,10 @@ FILES = frozenset([
     "directories",
     "payors",
     "plans",
-    #"locations",
+    # "locations",
     "provider_records",
-    #"specialties",
-    #"providers_specialties"
+    # "specialties",
+    # "providers_specialties"
 ])
 
 
