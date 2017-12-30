@@ -116,7 +116,9 @@ class ProviderMunger:
             if token:
                 phone_numbers.add(token.strip())
         for pn in phone_numbers:
-            p.append(self._phone_or_new(pn))
+            nn = self._phone_or_new(pn)
+            if nn:
+                p.append(nn)
 
         return p
 
@@ -173,11 +175,10 @@ class ProviderMunger:
         provider = self._session.merge(provider)
 
         # Break up the addy and phones and insert them
-        addresses = self._cleanup_addresses(m(row, 'address', str))
-        numbers = self._cleanup_phone_numbers(m(row, 'phone', str))
-
-        provider.addresses = provider.addresses + addresses
-        provider.phone_numbers = provider.phone_numbers + numbers
+        for address in self._cleanup_addresses(m(row, 'address', str)):
+            provider.addresses.append(address)
+        for number in self._cleanup_phone_numbers(m(row, 'phone', str)):
+            provider.phone_numbers.append(number)
 
         # If we haven't created this license yet, do it.
         if not lic and license_number:

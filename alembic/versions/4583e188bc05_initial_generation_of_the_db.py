@@ -1,8 +1,8 @@
-"""initial
+"""initial generation of the db
 
-Revision ID: cdcfceb14354
+Revision ID: 4583e188bc05
 Revises: 
-Create Date: 2017-12-22 21:23:01.258881
+Create Date: 2017-12-30 12:11:52.464562
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'cdcfceb14354'
+revision = '4583e188bc05'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -69,10 +69,13 @@ def upgrade():
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('name', sa.String(length=512), nullable=True),
-    sa.Column('locale', sa.String(), nullable=True),
+    sa.Column('country', sa.String(length=3), nullable=False),
+    sa.Column('state', sa.String(length=2), nullable=True),
+    sa.Column('city', sa.String(length=64), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     schema='monday'
     )
+    op.create_index('ix_monday_licensor_name_country_state_city', 'licensor', ['name', 'country', 'state', 'city'], unique=True, schema='monday')
     op.create_table('modality',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
@@ -116,6 +119,8 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     schema='monday'
     )
+    op.create_index('ix_monday_phone_npa_nxx_xxxx_extension', 'phone', ['npa', 'nxx', 'xxxx', 'extension'], unique=True, schema='monday')
+    op.create_index('ix_monday_phone_npa_nxx_xxxx_null', 'phone', ['npa', 'nxx', 'xxxx'], unique=True, schema='monday', postgresql_where=sa.text('extension IS NULL'))
     op.create_table('provider',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
@@ -157,14 +162,16 @@ def upgrade():
     sa.Column('licensee_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['licensee_id'], ['monday.provider.id'], ),
     sa.ForeignKeyConstraint(['licensor_id'], ['monday.licensor.id'], ),
-    sa.PrimaryKeyConstraint('id', 'licensor_id', 'licensee_id'),
+    sa.PrimaryKeyConstraint('id'),
     schema='monday'
     )
+    op.create_index('ix_monday_license_number_licensor_id_licensee_id', 'license', ['number', 'licensor_id', 'licensee_id'], unique=True, schema='monday')
     op.create_table('phones_addresses',
     sa.Column('phone_id', sa.Integer(), nullable=True),
     sa.Column('address_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['address_id'], ['monday.address.id'], ),
     sa.ForeignKeyConstraint(['phone_id'], ['monday.phone.id'], ),
+    sa.UniqueConstraint('phone_id', 'address_id'),
     schema='monday'
     )
     op.create_table('plan',
@@ -185,6 +192,7 @@ def upgrade():
     sa.Column('address_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['address_id'], ['monday.address.id'], ),
     sa.ForeignKeyConstraint(['provider_id'], ['monday.provider.id'], ),
+    sa.UniqueConstraint('provider_id', 'address_id'),
     schema='monday'
     )
     op.create_table('providers_credentials',
@@ -192,6 +200,7 @@ def upgrade():
     sa.Column('credential_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['credential_id'], ['monday.credential.id'], ),
     sa.ForeignKeyConstraint(['provider_id'], ['monday.provider.id'], ),
+    sa.UniqueConstraint('provider_id', 'credential_id'),
     schema='monday'
     )
     op.create_table('providers_groups',
@@ -199,6 +208,7 @@ def upgrade():
     sa.Column('group_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['group_id'], ['monday.group.id'], ),
     sa.ForeignKeyConstraint(['provider_id'], ['monday.provider.id'], ),
+    sa.UniqueConstraint('provider_id', 'group_id'),
     schema='monday'
     )
     op.create_table('providers_languages',
@@ -206,6 +216,7 @@ def upgrade():
     sa.Column('language_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['language_id'], ['monday.language.id'], ),
     sa.ForeignKeyConstraint(['provider_id'], ['monday.provider.id'], ),
+    sa.UniqueConstraint('provider_id', 'language_id'),
     schema='monday'
     )
     op.create_table('providers_modalities',
@@ -213,6 +224,7 @@ def upgrade():
     sa.Column('modality_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['modality_id'], ['monday.modality.id'], ),
     sa.ForeignKeyConstraint(['provider_id'], ['monday.provider.id'], ),
+    sa.UniqueConstraint('provider_id', 'modality_id'),
     schema='monday'
     )
     op.create_table('providers_orientations',
@@ -220,6 +232,7 @@ def upgrade():
     sa.Column('orientation_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['orientation_id'], ['monday.orientation.id'], ),
     sa.ForeignKeyConstraint(['provider_id'], ['monday.provider.id'], ),
+    sa.UniqueConstraint('provider_id', 'orientation_id'),
     schema='monday'
     )
     op.create_table('providers_payment_methods',
@@ -227,6 +240,7 @@ def upgrade():
     sa.Column('payment_method_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['payment_method_id'], ['monday.payment_method.id'], ),
     sa.ForeignKeyConstraint(['provider_id'], ['monday.provider.id'], ),
+    sa.UniqueConstraint('provider_id', 'payment_method_id'),
     schema='monday'
     )
     op.create_table('providers_payors',
@@ -234,6 +248,7 @@ def upgrade():
     sa.Column('payor_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['payor_id'], ['monday.payor.id'], ),
     sa.ForeignKeyConstraint(['provider_id'], ['monday.provider.id'], ),
+    sa.UniqueConstraint('provider_id', 'payor_id'),
     schema='monday'
     )
     op.create_table('providers_phones',
@@ -241,6 +256,7 @@ def upgrade():
     sa.Column('phone_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['phone_id'], ['monday.phone.id'], ),
     sa.ForeignKeyConstraint(['provider_id'], ['monday.provider.id'], ),
+    sa.UniqueConstraint('provider_id', 'phone_id'),
     schema='monday'
     )
     op.create_table('providers_specialties',
@@ -248,6 +264,7 @@ def upgrade():
     sa.Column('specialty_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['provider_id'], ['monday.provider.id'], ),
     sa.ForeignKeyConstraint(['specialty_id'], ['monday.specialty.id'], ),
+    sa.UniqueConstraint('provider_id', 'specialty_id'),
     schema='monday'
     )
     op.create_table('providers_plans',
@@ -255,6 +272,7 @@ def upgrade():
     sa.Column('plan_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['plan_id'], ['monday.plan.id'], ),
     sa.ForeignKeyConstraint(['provider_id'], ['monday.provider.id'], ),
+    sa.UniqueConstraint('provider_id', 'plan_id'),
     schema='monday'
     )
     # ### end Alembic commands ###
@@ -275,14 +293,18 @@ def downgrade():
     op.drop_table('providers_addresses', schema='monday')
     op.drop_table('plan', schema='monday')
     op.drop_table('phones_addresses', schema='monday')
+    op.drop_index('ix_monday_license_number_licensor_id_licensee_id', table_name='license', schema='monday')
     op.drop_table('license', schema='monday')
     op.drop_table('specialty', schema='monday')
     op.drop_table('provider', schema='monday')
+    op.drop_index('ix_monday_phone_npa_nxx_xxxx_null', table_name='phone', schema='monday')
+    op.drop_index('ix_monday_phone_npa_nxx_xxxx_extension', table_name='phone', schema='monday')
     op.drop_table('phone', schema='monday')
     op.drop_table('payor', schema='monday')
     op.drop_table('payment_method', schema='monday')
     op.drop_table('orientation', schema='monday')
     op.drop_table('modality', schema='monday')
+    op.drop_index('ix_monday_licensor_name_country_state_city', table_name='licensor', schema='monday')
     op.drop_table('licensor', schema='monday')
     op.drop_table('language', schema='monday')
     op.drop_table('group', schema='monday')
