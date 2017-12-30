@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Union, Tuple, List, Mapping, Any, Iterable
+from typing import Union, List, Mapping, Any, Iterable
 
 import phonenumbers
 import progressbar
@@ -104,42 +104,51 @@ class ProviderMunger:
 
         return found
 
-    def _address_or_new(self, raw: str) -> Address:
-        found = self._session.query(Address).filter_by(raw=raw).one_or_none()
+    def _cleanup_phone_numbers(self, raw_phone: str) -> List[Phone]:
+        p = []
 
-        if not found:
-            found = Address(raw=raw)
-            self._session.add(found)
+        if not raw_phone:
+            return p
 
-        return found
+        phone_numbers = set()
 
-    def _mux_addy_phone(self, raw_address: str, raw_phone: str) -> \
-            Tuple[List[Address], List[Phone]]:
+        for token in raw_phone.split("\n"):
+            if token:
+                phone_numbers.add(token.strip())
+        for pn in phone_numbers:
+            p.append(self._phone_or_new(pn))
 
-        addresses = []
-        phone_numbers = []
+        return p
 
-        if raw_address:
-            current = ''
-            for token in raw_address.split("\n"):
-                if not token:
-                    addresses.append(self._address_or_new(current.strip()))
-                    current = ''
-                    continue
-                current = current + token.strip() + " "
-            addresses.append(self._address_or_new(current.strip()))
+    def _cleanup_addresses(self, raw_address: str) -> List[Address]:
 
-        if raw_phone:
-            for token in raw_phone.split("\n"):
-                if not token:
-                    continue
-                np = self._phone_or_new(token.strip())
-                if np:
-                    phone_numbers.append(np)
+        ret = []
 
-        return addresses, phone_numbers
+        if not raw_address:
+            return ret
 
-    def _upsert_row(self, row: Mapping[str, Any]) -> None:
+        addresses = set()
+        current = ''
+        for token in raw_address.split("\n"):
+            if not token:
+                addresses.add(current.strip())
+                current = ''
+                continue
+            current = current + token.strip() + " "
+        addresses.add(current.strip())
+
+        for a in addresses:
+            found = self._session.query(Address).filter_by(raw=a).one_or_none()
+
+            if not found:
+                found = Address(raw=a)
+                self._session.add(found)
+
+            ret.append(found)
+
+        return ret
+
+    def _upsert_row(self, row: Mapping[str, Any]) -> Provider:
         license_number = m(row, 'license_number', str)
         row_id = m(row, 'id', int)
 
@@ -160,13 +169,13 @@ class ProviderMunger:
             # null to not overwrite existing fields from other record sources
             if val is not None:
                 args[k] = val
-        provider = Provider(id=row_id, **args)
+        provider: Provider = Provider(id=row_id, **args)
         provider = self._session.merge(provider)
 
         # Break up the addy and phones and insert them
-        raw_addy = m(row, 'address', str)
-        raw_phone = m(row, 'phone', str)
-        addresses, numbers = self._mux_addy_phone(raw_addy, raw_phone)
+        addresses = self._cleanup_addresses(m(row, 'address', str))
+        numbers = self._cleanup_phone_numbers(m(row, 'phone', str))
+
         provider.addresses = provider.addresses + addresses
         provider.phone_numbers = provider.phone_numbers + numbers
 
@@ -175,8 +184,14 @@ class ProviderMunger:
             lic = License(number=license_number, licensee=provider,
                           licensor=self._nysop)
 
-            # This should be new
-            self._session.add(lic)
+            # It's a requirement of association tables in sqlalchemy that the
+            # "child" in the relationship must be explicitly associated with
+            # the association record. see:
+            # http://docs.sqlalchemy.org/en/latest/orm/basic_relationships.html
+            #   #association-object
+            provider.licenses.append(lic)
+
+        return provider
 
     def load_table(self, table: RawTable) -> Iterable[OrderedDict]:
         columns, rows = table.get_table_components()
