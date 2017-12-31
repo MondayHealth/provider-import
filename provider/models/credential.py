@@ -10,9 +10,9 @@ class Credential(Base):
     """
     A non-state license, certification, or registration.
     """
-    name = Column(String(64), unique=True, nullable=False)
+    full_name = Column(String(64), unique=True, nullable=False)
 
-    acronym = Column(String(16))
+    acronym = Column(String(16), index=True, unique=True)
 
     providers = relationship("Provider", secondary=provider_credential_table,
                              back_populates="credentials")

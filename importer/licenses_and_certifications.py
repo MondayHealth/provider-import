@@ -5,7 +5,7 @@ https://www.networktherapy.com/directory/credentials.asp
 
 from typing import Mapping
 
-ACRONYM_MAP: Mapping[str, str] = {
+CREDENTIAL_ACRONYMS: Mapping[str, str] = {
     'ATR': 'Registered Art Therapist',
     'ATR-BC': 'Registered Art Therapist - Board Certified',
     'BCBT': 'Board Certification in Bereavement Trauma',
