@@ -1,6 +1,6 @@
 from typing import Type
 
-from sqlalchemy import String, Column, ForeignKey, Integer, Text, Boolean, \
+from sqlalchemy import String, Column, Integer, Text, Boolean, \
     DateTime, Table
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import relationship
@@ -8,6 +8,7 @@ from sqlalchemy.orm import relationship
 from provider.models.address import Address, provider_address_table
 from provider.models.base import Base
 from provider.models.credential import provider_credential_table, Credential
+from provider.models.degree import Degree, provider_degree_table
 from provider.models.groups import provider_group_table, Group
 from provider.models.language import provider_language_table, Language
 from provider.models.license import License
@@ -107,6 +108,8 @@ class Provider(Base):
     phone_numbers = _relate(Phone, provider_phone_table)
 
     credentials = _relate(Credential, provider_credential_table)
+
+    degrees = _relate(Degree, provider_degree_table)
 
     payment_methods = _relate(PaymentMethod, provider_method_table)
 

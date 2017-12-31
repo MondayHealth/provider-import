@@ -8,9 +8,11 @@ provider_credential_table = make_join_table("provider", "credential")
 
 class Credential(Base):
     """
-    A providers credentials, like M.S.
+    A non-state license, certification, or registration.
     """
-    name = Column(String(64))
+    name = Column(String(64), unique=True, nullable=False)
+
+    acronym = Column(String(16))
 
     providers = relationship("Provider", secondary=provider_credential_table,
                              back_populates="credentials")

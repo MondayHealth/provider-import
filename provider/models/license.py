@@ -1,4 +1,5 @@
-from sqlalchemy import String, Column, Integer, ForeignKey, DateTime, Index
+from sqlalchemy import String, Column, Integer, ForeignKey, DateTime, \
+    UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from provider.models.base import Base
@@ -19,8 +20,4 @@ class License(Base):
     licensee = relationship("Provider", back_populates="licenses")
 
 
-Index("ix_monday_license_number_licensor_id_licensee_id",
-      License.number,
-      License.licensor_id,
-      License.licensee_id,
-      unique=True)
+UniqueConstraint(License.number, License.licensor_id, License.licensee_id)

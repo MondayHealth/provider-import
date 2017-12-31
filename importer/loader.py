@@ -86,7 +86,6 @@ class CSVLoader:
                         b.update(i)
                         i = i + 1
                 self._tables[name] = raw
-                # Clear progresssbar
 
     def get_tables(self) -> Mapping[str, RawTable]:
         return self._tables
