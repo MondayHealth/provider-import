@@ -56,7 +56,7 @@ DEGREES: Mapping[str, Mapping[str, Set[str]]] = {
         'Pharmacy': frozenset(['BPharm', ]),
         'Political, Economic and Social Sciences': frozenset(['BPESS', ]),
         'Resource Economics': frozenset(['BResEc', ]),
-        'Science': frozenset(['BSc', ]),
+        'Science': frozenset(['BS', 'BSc', ]),
         'Science in Environmental and Occupational Health': frozenset(
             ['BSEOH', ]),
         'Science in Nursing': frozenset(['BSN', ]),
@@ -85,6 +85,7 @@ DEGREES: Mapping[str, Mapping[str, Set[str]]] = {
         'Public Health': frozenset(['MPH', ]),
         'Science': frozenset(['MS', 'MSc', ]),
         'Counseling': frozenset(['MC', ]),
+        'Social Science': frozenset(['MSS', ]),
         'Social Work': frozenset(['MSW', ]),
         'Science in Social Work': frozenset(['MSSW', ]),
         'Science in Social Administration': frozenset(['MSSA', ]),
@@ -105,8 +106,9 @@ DEGREES: Mapping[str, Mapping[str, Set[str]]] = {
         'Nursing Practice': frozenset(['DNP', ]),
         'Optometry': frozenset(['OD', ]),
         'Osteopathy': frozenset(['DO', ]),
-        'Pharmacy': frozenset(['PharmD', ]),
+        'Pharmacy': frozenset(['PharmD', 'DP', 'PD', ]),
         'Philosophy': frozenset(['PhD', 'DPhil', 'DPh', ]),
+        'Literature': frozenset(['PhD-Lit', ]),
         'Physical Therapy': frozenset(['DPT', ]),
         'Psychology': frozenset(['PsyD', ]),
         'Public Health': frozenset(['DrPH', ]),
@@ -114,7 +116,9 @@ DEGREES: Mapping[str, Mapping[str, Set[str]]] = {
         'Science': frozenset(['DSc', 'ScD', ]),
         'Theology': frozenset(['DTh', 'ThD', ]),
         'Letters': frozenset(['DLitt', ]),
+        'Philosophy in Candidacy': frozenset(['PhD(c)', ]),
         'Veterinary Medicine': frozenset(['DVM', ]),
+        'Psychoanalysis': frozenset(['PsyaD', ]),
     }
 }
 

@@ -10,7 +10,7 @@ class Credential(Base):
     """
     A non-state license, certification, or registration.
     """
-    full_name = Column(String(64), unique=True, nullable=False)
+    full_name = Column(String(128), unique=True, nullable=False)
 
     acronym = Column(String(16), index=True, unique=True)
 
