@@ -16,7 +16,7 @@ def run_from_command_line() -> None:
     loader.load()
     munger: Munger = Munger()
     munger.update_fixtures()
-    # load_credentials(munger, loader)
+    load_credentials(munger, loader)
     munger.clean()
 
 
