@@ -186,4 +186,11 @@ CREDENTIAL_ACRONYMS: Mapping[str, str] = {
     'CAMS-III': 'Certified Anger Management Specialist - III',
     'CAMS-IV': 'Certified Anger Management Specialist - IV',
     'CAMS-V': 'Certified Anger Management Specialist - V',
+    'NCAC': 'National Certified Addiction Counselor',
+    'NCAC-I': 'National Certified Addiction Counselor - I',
+    'NCAC-II': 'National Certified Addiction Counselor - II',
+    'NDS': 'Nicotine Dependence Specialist',
+    'NCAAC': 'National Certified Adolescent Addictions Counselor',
+    'NCPRSS': 'National Peer Recovery Support Specialist',
+    'PMHCNS': 'Psychiatric and Mental Health Clinical Nurse Specialist'
 }

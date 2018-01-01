@@ -28,12 +28,8 @@ class CredentialParser:
     # @TODO: All of this can be mined for more information
     """ terms that when encountered literally are ignored """
     BLACKLIST: frozenset = frozenset([
-        'i',  # Probably I
-        'ii',  # Probably II
-        'iii',  # Probably III
-        'iv',  # Probably IV
-        'v',  # Probably V
-        'jr',  # This means Junior <_<
+        'jr',  # This means Junior
+        'sr',  # This means Senior
 
         # 7 Chars seems max for psychtoday input
         'doctora',
@@ -47,6 +43,8 @@ class CredentialParser:
         'hypnoth',
         'marriag',
         'therapi',
+        'body',
+        'mind',
         'life',
         'coach',
         'mentor',
@@ -54,11 +52,13 @@ class CredentialParser:
         'family',
         'therapy',
         'speaker',
-        'yoga',
         'author',
         'prof',
         'on',
         'staff',
+        'cert',
+        'clin',
+        'hyp',
 
         # Meaningless ad/buisiness crossed wires
         'dir',  # appears to be a business listing using psychtoday
@@ -66,6 +66,9 @@ class CredentialParser:
         'llc',  # LLC
         'the possibility practice',  # no
         'counseling services',  # no
+        'yoga',  # not what we're filtering for
+        'nyu',  # A university
+        'ac'  # accupuncture isn't what we're filtering for
     ])
 
     """ terms that when encountered literally are replaced with one or more 
@@ -75,21 +78,26 @@ class CredentialParser:
         'master social work': ('msw',),
         'clinical social worker': ('csw',),
         'clinical social work': ('csw',),
+        'abpp-cn': ('abpp', 'clinical neuropsychologist'),
         'ms ed': ('msed',),
         'r': ('lcsw-r',),
         '-r': ('lcsw-r',),
         'r-': ('lcsw-r',),
+        'acsw-r': ('acsw',),
         'np-p': ('npp',),
         'psy': ('psyd',),
         'lcswr': ('lcsw-r',),
         'lcswr ny nj': ('lcsw-r',),
         'lacsw-r': ('lcsw-r',),
         'lcsw - r': ('lcsw-r',),
+        'lcsw-pr': ('lcsw-r',),
         'lmswny': ('lmsw',),
         'lcswnj': ('lcsw',),
         'r-lcsw': ('lcsw-r',),
         'lcswc': ('lcsw-c',),
         'lcswcp': ('lcsw-cp',),
+        'mft-lp': ('lmft',),
+        'mhc-lp': ('lmhc',),
         '-bc': ('pmhnp',),
         'pmhnp-': ('pmhnp',),
         'csac-t': ('casac-t',),
@@ -107,6 +115,11 @@ class CredentialParser:
         'cams iii': ('cams-iii',),
         'cams iv': ('cams-iv',),
         'cams v': ('cams-v',),
+        'ncaci': ('ncac-i',),
+        'ncacii': ('ncac-ii',),
+        'ncac i': ('ncac-i',),
+        'ncac ii': ('ncac-ii',),
+        'emdr-i': ('emdr',),  # This is a level of training not a cert
         'bcia-c': ('bcb',),  # This means bcia-certified which is vague
 
         # The ABECSW issues a BCD, and the ABPsa issues a BCD-P
@@ -147,7 +160,9 @@ class CredentialParser:
         'licensed clinical psychologist': {},
         'psychiatric nurse': {},  # Is this true? All PNs have an RN?
         'licensed psychoanalyst': {},
-        'licensed psychologist': {}
+        'licensed psychologist': {},
+        'clinical neuropsychologist': {},
+
     }
 
     """Sometimes they list modalities as credentials"""
@@ -162,7 +177,7 @@ class CredentialParser:
 
     """A list of credentials for which saying "BC" is redundant"""
     IMPLICIT_BOARD_CERTIFICATION: frozenset = frozenset([
-        'APRN', 'PMHNP', 'MD', 'LCAT'
+        'aprn', 'pmhnp', 'md', 'lcat', 'pmhcns', 'rn'
     ])
 
     """
@@ -177,8 +192,12 @@ class CredentialParser:
 
         # Replace common mistakes
         ('mhc-, lp', 'mhc-lp'),
+        ('lcsw-, r', 'lcsw-r'),
         (' ms, ed,', 'msed;'),
         (' ph, d,', ' phd;'),
+        ('ncac, ii', 'ncac-ii'),
+        ('cams, i', 'cams-i'),
+        ('cams, ii', 'cams-ii'),
         ('phd ', 'phd;'),
         ('casac, g,', 'casac-g;'),
 
