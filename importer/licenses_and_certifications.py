@@ -148,8 +148,8 @@ CREDENTIAL_ACRONYMS: Mapping[str, str] = {
     'QCSW': 'Qualified Clinical Social Worker',
     'ABSNP': 'Diplomate in School Neuropsychology',
     'ESQ': 'Board Certified Lawyer',
-    'ICADC': 'Internationally Certified Alcohol & Drug Counselor',
-    'ICAADC': 'Internationally Certified Advanced Alcohol & Drug Counselor',
+    'ICADC': 'Internationally Certified Alcohol and Drug Counselor',
+    'ICAADC': 'Internationally Certified Advanced Alcohol and Drug Counselor',
     'ICCS': 'Internationally Certified Clinical Supervisor',
     'ICCJP': 'Internationally Certified Criminal Justice Addictions '
              'Professional',
@@ -180,5 +180,10 @@ CREDENTIAL_ACRONYMS: Mapping[str, str] = {
     'CCS': 'Certified Coding Specialist',
     'CCS-P': 'Physician-based Certified Coding Specialist',
     'CNS': 'Certified Nutrition Specialist',
-
+    'CAMS': 'Certified Anger Management Specialist',
+    'CAMS-I': 'Certified Anger Management Specialist - I',
+    'CAMS-II': 'Certified Anger Management Specialist - II',
+    'CAMS-III': 'Certified Anger Management Specialist - III',
+    'CAMS-IV': 'Certified Anger Management Specialist - IV',
+    'CAMS-V': 'Certified Anger Management Specialist - V',
 }

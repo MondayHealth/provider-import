@@ -96,6 +96,7 @@ class Munger:
         ipcp = CredentialsMunger(self._session)
         ipcp.process(t['provider_records'])
         self._session.commit()
+        ipcp.print_skipped()
 
     def clean(self) -> None:
         # Clean up
