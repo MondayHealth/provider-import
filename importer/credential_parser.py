@@ -54,7 +54,6 @@ class CredentialParser:
         'speaker',
         'author',
         'prof',
-        'on',
         'staff',
         'cert',
         'clin',
