@@ -9,7 +9,6 @@ from importer.provider_munger import ProviderMunger
 from importer.util import m
 from provider.models.credential import Credential
 from provider.models.degree import Degree
-from provider.models.license import License
 from provider.models.licensor import Licensor
 from provider.models.providers import Provider
 
@@ -20,12 +19,9 @@ class CredentialsMunger:
         self._credentials: List[CredentialParser] = []
         self._degree_map: MutableMapping[str, Degree] = {}
         self._credential_map: MutableMapping[str, Credential] = {}
-        self._nysop: Licensor = None
         self._generate_maps()
 
     def _generate_maps(self):
-        self._nysop = self._session.query(Licensor).filter_by(
-            name=ProviderMunger.NYSOP_NAME).one_or_none()
 
         for record in self._session.query(Degree).all():
             self._degree_map[record.acronym.lower()] = record
@@ -34,23 +30,17 @@ class CredentialsMunger:
             self._credential_map[record.acronym.lower()] = record
 
     def process(self, table: RawTable) -> None:
+        nysop = self._session.query(Licensor).filter_by(
+            name=ProviderMunger.NYSOP_NAME).one_or_none()
+        nysop_id = nysop.id
+
         columns, rows = table.get_table_components()
 
         bar = progressbar.ProgressBar(max_value=len(rows))
         i = 0
         for row in rows:
-
-            license_number = m(row, 'license_number', str)
-            row_id = m(row, 'id', int)
-
-            # Try to find a license number
-            if license_number:
-                q = self._session.query(License)
-                q = q.filter_by(number=license_number,
-                                licensor_id=self._nysop.id)
-                lic = q.options(load_only("licensee_id")).one_or_none()
-                if lic:
-                    row_id = lic.licensee_id
+            row_id, lic = ProviderMunger.resolve_provider(row, self._session,
+                                                          nysop_id)
 
             q = self._session.query(Provider)
             provider = q.filter_by(id=row_id).options(
@@ -82,8 +72,8 @@ class CredentialsMunger:
                 else:
                     print('WARNING: no cred record for', cred)
 
-            bar.update(i)
             i = i + 1
+            bar.update(i)
 
     def print_skipped(self):
         print_cred_stats(self._credentials)
