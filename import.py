@@ -2,21 +2,26 @@ from importer.loader import CSVLoader
 from importer.munger import Munger
 
 
-def initial_import(m: Munger, l: CSVLoader) -> None:
-    m.load_providers(l.get_tables())
-
-
-def load_credentials(m: Munger, l: CSVLoader) -> None:
-    m.process_credentials_in_place(l.get_tables())
-
-
 def run_from_command_line() -> None:
     base_path: str = '/Users/ixtli/Downloads/monday'
     loader: CSVLoader = CSVLoader(base_path)
     loader.load()
     munger: Munger = Munger()
     munger.update_fixtures()
-    load_credentials(munger, loader)
+    # Initial provider import
+    # munger.load_providers(loader.get_tables())
+
+    # Load credentials
+    # munger.process_credentials_in_place(loader.get_tables())
+
+    # Load payment methods
+    # munger.process_payment_methods_in_place(loader.get_tables())
+
+    # Load accepted plan IDs
+    # munger.process_plans_in_place(loader.get_tables())
+
+    # Load specialties
+    munger.process_speciallties_in_place(loader.get_tables())
     munger.clean()
 
 

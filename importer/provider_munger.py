@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Union, List, Mapping, Any, Iterable
+from typing import Union, List, Mapping, Any, Iterable, Tuple
 
 import phonenumbers
 import progressbar
@@ -39,6 +39,27 @@ class ProviderMunger:
     def __init__(self, session: Session):
         self._session: Session = session
         self._load_nysop()
+
+    @staticmethod
+    def resolve_provider(row: Mapping[str, Any], s: Session, i: int) \
+            -> Tuple[str, Union[License, None]]:
+        """
+        Find a provider's row id given a CSV row, a session, and the id of a
+        licensor to match the CSV row's license number against
+        :param row: The row object
+        :param s: The session
+        :param i: The ID of the licensor
+        :return: The id
+        """
+        license_number = m(row, 'license_number', str)
+
+        # Try to find a license number
+        if license_number:
+            q = s.query(License).filter_by(number=license_number, licensor_id=i)
+            lic = q.options(load_only("licensee_id")).one_or_none()
+            if lic:
+                return lic.licensee_id, lic
+        return m(row, 'id', int), None
 
     @staticmethod
     def _clean_pn(raw: str) -> Union[str, None]:
@@ -151,17 +172,7 @@ class ProviderMunger:
         return ret
 
     def _upsert_row(self, row: Mapping[str, Any]) -> Provider:
-        license_number = m(row, 'license_number', str)
-        row_id = m(row, 'id', int)
-
-        # Try to find a license number
-        lic: Union[License, None] = None
-        if license_number:
-            q = self._session.query(License)
-            q = q.filter_by(number=license_number, licensor_id=self._nysop.id)
-            lic = q.options(load_only("licensee_id")).one_or_none()
-            if lic:
-                row_id = lic.licensee_id
+        row_id, lic = self.resolve_provider(row, self._session, self._nysop.id)
 
         # Make the new provider record
         args = {}
@@ -181,16 +192,20 @@ class ProviderMunger:
             provider.phone_numbers.append(number)
 
         # If we haven't created this license yet, do it.
-        if not lic and license_number:
-            lic = License(number=license_number, licensee=provider,
-                          licensor=self._nysop)
+        if not lic:
+            ln = row['license_number']
+            if ln:
+                lic = License(number=ln, licensee=provider,
+                              licensor=self._nysop)
 
-            # It's a requirement of association tables in sqlalchemy that the
-            # "child" in the relationship must be explicitly associated with
-            # the association record. see:
-            # http://docs.sqlalchemy.org/en/latest/orm/basic_relationships.html
-            #   #association-object
-            provider.licenses.append(lic)
+                """
+                It's a requirement of association tables in sqlalchemy that the
+                "child" in the relationship must be explicitly associated with
+                the association record. see:
+                http://docs.sqlalchemy.org/en/latest/orm/basic_relationships.html
+                  #association-object
+                """
+                provider.licenses.append(lic)
 
         return provider
 

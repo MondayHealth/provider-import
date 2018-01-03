@@ -6,10 +6,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, Session
 
 from db_url import get_db_url
+from importer.accepted_plans_munger import AcceptedPlanMunger
 from importer.credentials_munger import CredentialsMunger
 from importer.fixture_updater import FixtureUpdater
 from importer.loader import RawTable
+from importer.payment_munger import PaymentMunger
 from importer.provider_munger import ProviderMunger
+from importer.specialty_munger import SpecialtyMunger
 from importer.util import mutate
 from provider.models.directories import Directory
 from provider.models.payors import Payor
@@ -96,7 +99,22 @@ class Munger:
         ipcp = CredentialsMunger(self._session)
         ipcp.process(t['provider_records'])
         self._session.commit()
-        ipcp.print_skipped()
+
+    def process_payment_methods_in_place(self,
+                                         t: Mapping[str, RawTable]) -> None:
+        pm = PaymentMunger(self._session)
+        pm.process(t['provider_records'])
+        self._session.commit()
+
+    def process_plans_in_place(self, t: Mapping[str, RawTable]) -> None:
+        pm = AcceptedPlanMunger(self._session)
+        pm.process(t['provider_records'])
+        self._session.commit()
+
+    def process_speciallties_in_place(self, t: Mapping[str, RawTable]) -> None:
+        sm = SpecialtyMunger(self._session)
+        sm.process(t['provider_records'])
+        self._session.commit()
 
     def clean(self) -> None:
         # Clean up

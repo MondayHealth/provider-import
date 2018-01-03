@@ -6,11 +6,21 @@ from importer.academic_degrees import DEGREES, ACRONYM_MAP
 from importer.licenses_and_certifications import CREDENTIAL_ACRONYMS
 from provider.models.credential import Credential
 from provider.models.degree import Degree
+from provider.models.payment_methods import PaymentMethodType, PaymentMethod
 
 
 class FixtureUpdater:
     def __init__(self, session: Session):
         self._session = session
+
+    def _update_payment_methods(self) -> None:
+        methods = set([x for x in PaymentMethodType])
+        for r in self._session.query(PaymentMethod).all():
+            methods.remove(r.payment_type)
+
+        for method in methods:
+            pm = PaymentMethod(payment_type=method)
+            self._session.add(pm)
 
     def _update_licences_and_certifications(self) -> None:
         bar = progressbar.ProgressBar(max_value=len(CREDENTIAL_ACRONYMS))
@@ -39,3 +49,4 @@ class FixtureUpdater:
     def run(self) -> None:
         self._update_degrees()
         self._update_licences_and_certifications()
+        self._update_payment_methods()
