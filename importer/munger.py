@@ -148,7 +148,11 @@ class Munger:
                 if lic:
                     row_id = lic.licensee_id
 
-            if update_columns:
+            # Does this provider exist?
+            provider: Provider = self._session.query(Provider).filter_by(
+                id=row_id).options(load_only("id"))
+
+            if not provider or update_columns:
                 args = {}
                 for k, v in self.ROW_FIELDS.items():
                     val = m(row, k, v)
@@ -159,10 +163,6 @@ class Munger:
                         args[k] = val
                 provider: Provider = Provider(id=row_id, **args)
                 provider = self._session.merge(provider)
-            else:
-                provider: Provider = self._session.query(Provider).filter_by(
-                    id=row_id).options(load_only("id"))
-                self._session.add(provider)
 
             # Add the nysop license if its not there
             if not lic and license_number:
