@@ -1,27 +1,31 @@
+from importer.accepted_plans_munger import AcceptedPlanMunger
+from importer.credentials_munger import CredentialsMunger
 from importer.loader import CSVLoader
 from importer.munger import Munger
+from importer.payment_munger import PaymentMunger
+from importer.phone_addy_munger import PhoneAddyMunger
+from importer.specialty_munger import SpecialtyMunger
 
 
 def run_from_command_line() -> None:
     base_path: str = '/Users/ixtli/Downloads/monday'
     loader: CSVLoader = CSVLoader(base_path)
     loader.load()
-    munger: Munger = Munger()
+    tables = loader.get_tables()
+
+    plugins = (
+        PhoneAddyMunger,
+        CredentialsMunger,
+        PaymentMunger,
+        AcceptedPlanMunger,
+        SpecialtyMunger
+    )
+
+    munger: Munger = Munger(plugins, True)
     munger.update_fixtures()
     # Initial provider import
-    # munger.load_providers(loader.get_tables())
-
-    # Load credentials
-    # munger.process_credentials_in_place(loader.get_tables())
-
-    # Load payment methods
-    # munger.process_payment_methods_in_place(loader.get_tables())
-
-    # Load accepted plan IDs
-    # munger.process_plans_in_place(loader.get_tables())
-
-    # Load specialties
-    munger.process_speciallties_in_place(loader.get_tables())
+    munger.load_small_tables(tables)
+    munger.process_providers(tables, True)
     munger.clean()
 
 
