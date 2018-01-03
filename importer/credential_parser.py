@@ -1,7 +1,8 @@
-import sys
 from typing import Mapping, Tuple, Set, MutableMapping, List
 
-from fixtures import ACRONYM_MAP as DEGREE_ACRONYMS
+import sys
+
+from fixtures.academic_degrees import ACRONYM_MAP as DEGREE_ACRONYMS
 from fixtures.licenses_and_certifications import CREDENTIAL_ACRONYMS
 
 # Do not modify these, or else you break the thread safety!
