@@ -1,8 +1,8 @@
 import sys
 from typing import Mapping, Tuple, Set, MutableMapping, List
 
-from importer.academic_degrees import ACRONYM_MAP as DEGREE_ACRONYMS
-from importer.licenses_and_certifications import CREDENTIAL_ACRONYMS
+from fixtures import ACRONYM_MAP as DEGREE_ACRONYMS
+from fixtures.licenses_and_certifications import CREDENTIAL_ACRONYMS
 
 # Do not modify these, or else you break the thread safety!
 _CRED_ACRO_MAP: MutableMapping[str, str] = {}

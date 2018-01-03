@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, UniqueConstraint, Enum
 from sqlalchemy.orm import relationship
 
-from importer.academic_degrees import EducationLevel
+from fixtures import EducationLevel
 from provider.models.base import Base, make_join_table
 
 provider_degree_table = make_join_table("provider", "degree")

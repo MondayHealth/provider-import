@@ -2,8 +2,8 @@
 import progressbar
 from sqlalchemy.orm import Session
 
-from importer.academic_degrees import DEGREES, ACRONYM_MAP
-from importer.licenses_and_certifications import CREDENTIAL_ACRONYMS
+from fixtures import DEGREES, ACRONYM_MAP
+from fixtures.licenses_and_certifications import CREDENTIAL_ACRONYMS
 from provider.models.credential import Credential
 from provider.models.degree import Degree
 from provider.models.payment_methods import PaymentMethodType, PaymentMethod
