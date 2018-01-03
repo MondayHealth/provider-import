@@ -15,7 +15,13 @@ def run_from_command_line() -> None:
     # munger.process_credentials_in_place(loader.get_tables())
 
     # Load payment methods
-    munger.process_payment_methods_in_place(loader.get_tables())
+    # munger.process_payment_methods_in_place(loader.get_tables())
+
+    # Load accepted plan IDs
+    # munger.process_plans_in_place(loader.get_tables())
+
+    # Load specialties
+    munger.process_speciallties_in_place(loader.get_tables())
     munger.clean()
 
 
