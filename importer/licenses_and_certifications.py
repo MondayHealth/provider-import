@@ -192,5 +192,7 @@ CREDENTIAL_ACRONYMS: Mapping[str, str] = {
     'NDS': 'Nicotine Dependence Specialist',
     'NCAAC': 'National Certified Adolescent Addictions Counselor',
     'NCPRSS': 'National Peer Recovery Support Specialist',
-    'PMHCNS': 'Psychiatric and Mental Health Clinical Nurse Specialist'
+    'PMHCNS': 'Psychiatric and Mental Health Clinical Nurse Specialist',
+    'C-IAYT': 'International Certification of Yoga Therapists Certification',
+    'OSW-C': 'Oncology Social Work Certification'
 }
