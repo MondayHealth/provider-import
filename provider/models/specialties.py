@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, Integer
+from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
 
 from provider.models.base import make_join_table, Base
@@ -18,13 +18,10 @@ class Specialty(Base):
       end
     """
 
-    name = Column(String(), nullable=False)
-
-    #
-    is_canonical = Column(Boolean(), default=False, nullable=False)
-
-    #
-    alias_id = Column(Integer())
+    name = Column(String(64), nullable=False)
 
     providers = relationship("Provider", secondary=provider_speciality_table,
                              back_populates="specialties")
+
+    def __str__(self) -> str:
+        return self.name

@@ -4,9 +4,11 @@ from sqlalchemy.orm import Session
 
 from fixtures.academic_degrees import DEGREES, ACRONYM_MAP
 from fixtures.licenses_and_certifications import CREDENTIAL_ACRONYMS
+from fixtures.specialties import SPECIALTIES
 from provider.models.credential import Credential
 from provider.models.degree import Degree
 from provider.models.payment_methods import PaymentMethodType, PaymentMethod
+from provider.models.specialties import Specialty
 
 
 class FixtureUpdater:
@@ -46,7 +48,16 @@ class FixtureUpdater:
                     i += 1
                     bar.update(i)
 
+    def _update_specialties(self) -> None:
+        to_put = set(SPECIALTIES)
+        for sp in self._session.query(Specialty).all():
+            to_put.remove(sp.name)
+
+        for sp_name in to_put:
+            self._session.add(Specialty(name=sp_name))
+
     def run(self) -> None:
         self._update_degrees()
         self._update_licences_and_certifications()
         self._update_payment_methods()
+        self._update_specialties()

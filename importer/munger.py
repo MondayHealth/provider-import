@@ -150,7 +150,7 @@ class Munger:
 
             # Does this provider exist?
             provider: Provider = self._session.query(Provider).filter_by(
-                id=row_id).options(load_only("id"))
+                id=row_id).options(load_only("id")).one_or_none()
 
             if not provider or update_columns:
                 args = {}
