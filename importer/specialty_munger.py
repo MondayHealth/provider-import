@@ -27,13 +27,13 @@ class SpecialtyMunger(MungerPlugin):
             self._records[record.name] = record
 
     def process_row(self, row: OrderedDict, provider: Provider) -> None:
-        spec = m(row, 'specialties', str)
+        raw = m(row, 'specialties', str)
 
-        if not spec:
+        if not raw:
             return
 
         # clean it up
-        spec = spec.lower().replace("--", " ") \
+        processed = raw.lower().replace("--", " ") \
             .replace("(", "") \
             .replace(")", "") \
             .replace("'", "") \
@@ -43,11 +43,14 @@ class SpecialtyMunger(MungerPlugin):
 
         found = set()
 
-        for token in spec.split(';'):
+        for token in processed.split(';'):
             token = token.strip()
 
             # Edge case, no token
             if not token:
+                continue
+
+            if len(token) < 3:
                 continue
 
             # Edge case, we already know there are no specialties for this str
@@ -63,7 +66,7 @@ class SpecialtyMunger(MungerPlugin):
                     # If we've already added this specialty dont bother matching
                     if s_record in detected_specialties:
                         continue
-                    if pattern.match(token):
+                    if pattern.search(token):
                         # If it matches record that fact in the cache
                         detected_specialties.add(s_record)
                 # Save to the cache to avoid doing this again

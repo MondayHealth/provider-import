@@ -182,7 +182,7 @@ def _generate_specialties() -> None:
         (r'insomnia', "Sleep Disorder"),
         (r'trauma', "Trauma & Abuse"),
         (r'^(?!.*substance|.*alcohol|.*drug).*abuse.*$', "Trauma & Abuse"),
-        (r'b\brape\b', "Trauma & Abuse"),
+        (r'\brape\b', "Trauma & Abuse"),
         (r'ptsd', "Trauma & Abuse"),
         (r'domestic violence', "Trauma & Abuse"),
         (r'assault', "Trauma & Abuse"),
