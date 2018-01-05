@@ -127,11 +127,15 @@ class Munger:
     def process_providers(self, tables: Mapping[str, RawTable],
                           update_columns: bool) -> None:
 
+        print("Process provider post process")
+
         for plugin in self._plugins:
             plugin.pre_process()
 
         table = tables['provider_records']
         columns, rows = table.get_table_components()
+
+        print("Process providers")
 
         i = 0
         bar = progressbar.ProgressBar(max_value=len(rows), initial_value=i)
@@ -184,6 +188,8 @@ class Munger:
             self._session.commit()
             i += 1
             bar.update(i)
+
+        print("Post process provider plugins")
 
         self._session.flush()
 

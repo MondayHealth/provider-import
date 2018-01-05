@@ -3,10 +3,12 @@ import progressbar
 from sqlalchemy.orm import Session
 
 from fixtures.academic_degrees import DEGREES, ACRONYM_MAP
+from fixtures.languages import LANGUAGE_CODE_MAP
 from fixtures.licenses_and_certifications import CREDENTIAL_ACRONYMS
 from fixtures.specialties import SPECIALTIES
 from provider.models.credential import Credential
 from provider.models.degree import Degree
+from provider.models.language import Language
 from provider.models.payment_methods import PaymentMethodType, PaymentMethod
 from provider.models.specialties import Specialty
 
@@ -14,6 +16,24 @@ from provider.models.specialties import Specialty
 class FixtureUpdater:
     def __init__(self, session: Session):
         self._session = session
+
+    def _update_languages(self) -> None:
+        to_add = set(LANGUAGE_CODE_MAP.keys())
+
+        bar = progressbar.ProgressBar(max_value=len(to_add), initial_value=0)
+        i = 0
+        for record in self._session.query(Language).all():
+            to_add.remove(record.iso)
+            i += 1
+            bar.update(i)
+
+        bar = progressbar.ProgressBar(max_value=len(to_add), initial_value=0)
+        i = 0
+        for new_lang in to_add:
+            lang = LANGUAGE_CODE_MAP[new_lang]
+            self._session.add(Language(name=lang, iso=new_lang))
+            i += 1
+            bar.update(i)
 
     def _update_payment_methods(self) -> None:
         methods = set([x for x in PaymentMethodType])
@@ -61,3 +81,4 @@ class FixtureUpdater:
         self._update_licences_and_certifications()
         self._update_payment_methods()
         self._update_specialties()
+        self._update_languages()

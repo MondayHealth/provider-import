@@ -1,6 +1,6 @@
+from importer.language_munger import LanguageMunger
 from importer.loader import CSVLoader
 from importer.munger import Munger
-from importer.specialty_munger import SpecialtyMunger
 
 
 def run_from_command_line() -> None:
@@ -14,7 +14,8 @@ def run_from_command_line() -> None:
         # CredentialsMunger,
         # PaymentMunger,
         # AcceptedPlanMunger,
-        SpecialtyMunger,
+        # SpecialtyMunger,
+        LanguageMunger,
     )
 
     munger: Munger = Munger(plugins, True)

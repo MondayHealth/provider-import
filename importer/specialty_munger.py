@@ -23,6 +23,7 @@ class SpecialtyMunger(MungerPlugin):
 
         self._unknown_keys: Set[str] = set()
 
+    def pre_process(self) -> None:
         for record in self._session.query(Specialty).all():
             self._records[record.name] = record
 

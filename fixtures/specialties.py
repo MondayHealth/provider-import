@@ -63,8 +63,7 @@ def _generate_specialties() -> None:
         (r'depress', "Depression"),
         (r'seasonal affective', "Depression"),
         (r'dissociat', "Dissociative"),
-        # @TODO: This fails
-        # (r'*\beap\b', "EAP"),
+        (r'\beap\b', "EAP"),
         (r'employee assist', "EAP"),
         (r'famil(y|i)', "Family Issues"),
         (r'adoption', "Family Issues"),
@@ -76,8 +75,7 @@ def _generate_specialties() -> None:
         (r'^psychiatry$', "General Practice"),
         (r'adults', "General Practice"),
         (r'social work', "General Practice"),
-        # @TODO: This fails
-        # (r'*\bnurs', "General Practice"),
+        (r'\bnurs', "General Practice"),
         (r'^(?!.*supervision|.*issues)(?=.*clinical).*$', "General Practice"),
         (r'licensed professional', "General Practice"),
         (r'^\\s*psychiatry\\s*$', "General Practice"),
