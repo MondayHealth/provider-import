@@ -2,6 +2,7 @@ import configparser
 from typing import Mapping, Type, Iterable, List
 
 import progressbar
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, Session, load_only
 
@@ -193,6 +194,9 @@ class Munger:
     def clean(self) -> None:
         # Clean up
         print()
-        print("Calling ANALYZE...")
-        self._engine.execute("ANALYZE;")
+        print("Calling VACUUM FULL VERBOSE ANALYSE ...")
+        connection = self._engine.raw_connection()
+        connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cursor = connection.cursor()
+        cursor.execute("VACUUM FULL VERBOSE ANALYSE;")
         print("Done.")
