@@ -5,6 +5,7 @@ MarkupSafe==1.0
 phonenumberslite==8.8.8
 progressbar2==3.34.3
 psycopg2==2.7.3.2
+pycountry==17.9.23
 python-dateutil==2.6.1
 python-editor==1.0.3
 python-utils==2.2.0
