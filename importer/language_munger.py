@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import MutableMapping, Set
+from typing import MutableMapping, Set, Union
 
 from sqlalchemy.orm import Session
 
@@ -21,30 +21,38 @@ class LanguageMunger(MungerPlugin):
         'elementary',
         'moderate',
         'learning',
+        'functional',
+        'millenial',  # Yes someone did once write this.
+        'slowly',
+        'interpreter',
+        'working',
         'a bit',
         'working knowledge',
         'n/a',
+        'none',
         'understand'
     ]
 
     _REPLACE = {
         "hiindi": "hindi",
+        "engllsh": "english",
         "mandarin": "mandarin chinese",
         "american": "english",  # jfc
         "cantonese": "yue chinese",
         "asl": "american sign language",
         "farsi": "persian",
-        "nepali": "nepali (individual language)",
+        "nepali": "nepali (macrolanguage)",
         "greek": "modern greek (1453-)",
         "haitian creole": "haitian",
         "haitian-creole": "haitian",
         "french creole": "cajun french",
-        "taiwanese": "",
-        "punjabi": "",
-        "moldavian": "",
-        "swahili": "",
-        "brazilian portuguese": "",
-
+        "punjabi": "panjabi",
+        "moldavian": "dhivehi",
+        "swahili": "swahili (macrolanguage)",
+        "brazilian portuguese": "portuguese",
+        "toisanese": "yue chinese",
+        "singales": "sinhala",
+        "bengali bangla": "bengali"
     }
 
     def __init__(self, session: Session, debug: bool):
@@ -67,6 +75,35 @@ class LanguageMunger(MungerPlugin):
         else:
             self._unknown[token] = {raw}
 
+    def _process_token(self, lang_name: str) -> Union[Language, bool]:
+        if lang_name in self._blacklisted:
+            return True
+
+        if lang_name in self._REPLACE:
+            lang_name = self._REPLACE[lang_name]
+        else:
+            found_blacklisted_qualifier = False
+            for qualifier in self._QUALIFIER_BLACKLIST:
+                if lang_name.find(qualifier) > -1:
+                    self._blacklisted.add(lang_name)
+                    found_blacklisted_qualifier = True
+                    break
+            if found_blacklisted_qualifier:
+                return True
+
+        if lang_name not in self._records:
+            return False
+
+        record = self._records[lang_name]
+
+        if not record:
+            record = self._session.query(Language).filter_by(
+                name=lang_name).one_or_none()
+            assert record, "couldn't find record name " + lang_name
+            self._records[lang_name] = record
+
+        return record
+
     def process_row(self, row: OrderedDict, provider: Provider) -> None:
         raw: str = m(row, 'languages', str)
 
@@ -80,8 +117,12 @@ class LanguageMunger(MungerPlugin):
             .replace("bilingual", "") \
             .replace("proficient", "") \
             .replace("conversational", "") \
+            .replace("native", "") \
+            .replace("speaker", "") \
             .replace("(", "") \
             .replace(")", "") \
+            .replace("&", ";") \
+            .replace(":", ";") \
             .replace("/", ";")
 
         for token in replaced_raw.split(';'):
@@ -90,33 +131,20 @@ class LanguageMunger(MungerPlugin):
             if not lang_name:
                 continue
 
-            if lang_name in self._blacklisted:
+            if len(lang_name) < 2:
                 continue
 
-            if lang_name in self._REPLACE:
-                lang_name = self._REPLACE[lang_name]
-            else:
-                found_blacklisted_qualifier = False
-                for qualifier in self._QUALIFIER_BLACKLIST:
-                    if lang_name.find(qualifier) > -1:
-                        self._blacklisted.add(lang_name)
-                        found_blacklisted_qualifier = True
-                        break
-                if found_blacklisted_qualifier:
-                    continue
+            r = self._process_token(lang_name)
 
-            if lang_name not in self._records:
+            # This means we know this is a bad token
+            if r is True:
+                continue
+
+            # Means we missed it
+            if r is False:
                 self._missed(lang_name, raw)
-                continue
-
-            record = self._records[lang_name]
-            if not record:
-                record = self._session.query(Language).filter_by(
-                    name=lang_name).one_or_none()
-                assert record, "couldn't find record name " + lang_name
-                self._records[lang_name] = record
-
-            found.add(self._records[lang_name])
+            else:
+                found.add(r)
 
         if len(found) < 1:
             return

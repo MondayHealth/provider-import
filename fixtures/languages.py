@@ -12,3 +12,7 @@ LANGUAGE_CODE_MAP['jjj'] = 'fujianese'
 
 # So can this, but it's likely taiwanese hokkien which doesnt have a code
 LANGUAGE_CODE_MAP['ttt'] = 'taiwanese'
+
+# We need this because there are 37 creoles in the dict but people use this
+# phrase to describe some languages.
+LANGUAGE_CODE_MAP['ccc'] = 'creole'
