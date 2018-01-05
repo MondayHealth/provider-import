@@ -20,6 +20,7 @@ class LanguageMunger(MungerPlugin):
         'not fluent',
         'elementary',
         'moderate',
+        'competent',
         'learning',
         'functional',
         'millenial',  # Yes someone did once write this.
@@ -139,6 +140,13 @@ class LanguageMunger(MungerPlugin):
             # This means we know this is a bad token
             if r is True:
                 continue
+
+            # Try one more strategy
+            if r is False and lang_name.find('-') > -1:
+                lang_name = lang_name.replace('-', '').strip()
+                r = self._process_token(lang_name)
+                if r is True:
+                    continue
 
             # Means we missed it
             if r is False:
