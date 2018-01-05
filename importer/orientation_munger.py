@@ -65,6 +65,6 @@ class OrientationMunger(MungerPlugin):
         super().post_process()
 
         print("\nUpdating...")
-        result = self._session.execute(
+        self._session.execute(
             "UPDATE monday.orientation SET tsv = to_tsvector('english', body);")
-        print("Done:", result.fetchone())
+        print("Done")
