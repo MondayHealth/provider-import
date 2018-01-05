@@ -1,6 +1,6 @@
 from importer.loader import CSVLoader
+from importer.modalities_munger import ModalityMunger
 from importer.munger import Munger
-from importer.orientation_munger import OrientationMunger
 
 
 def run_from_command_line() -> None:
@@ -16,7 +16,10 @@ def run_from_command_line() -> None:
         # AcceptedPlanMunger,
         # SpecialtyMunger,
         # LanguageMunger,
-        OrientationMunger,
+        # OrientationMunger,
+        # GroupsMunger,
+        # AcceptedPayorsMunger,
+        ModalityMunger,
     )
 
     munger: Munger = Munger(plugins, True)

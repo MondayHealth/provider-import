@@ -4,22 +4,19 @@ from sqlalchemy.orm import relationship
 
 from provider.models.base import Base, make_join_table
 
-provider_group_table = make_join_table("provider", "group")
+provider_apc_table = make_join_table("provider", "acceptedpayorcomment")
 
 
-class Group(Base):
-    """
-    A cohort of people. E.g.: TBI sufferers, gay people, religious people, etc.
-    """
+class AcceptedPayorComment(Base):
     body = Column(Text(), nullable=False, unique=True, index=True)
 
     tsv = Column(TSVECTOR)
 
     providers = relationship("Provider",
-                             secondary=provider_group_table,
-                             back_populates="groups")
+                             secondary=provider_apc_table,
+                             back_populates="accepted_payor_comments")
 
 
-Index('ix_monday_group_body_gin',
-      Group.tsv,
+Index('ix_monday_acceptedpayorcomment_body_gin',
+      AcceptedPayorComment.tsv,
       postgresql_using="gin")

@@ -5,6 +5,8 @@ from sqlalchemy import String, Column, Integer, Text, Boolean, \
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import relationship
 
+from provider.models.accepted_payor_comment import AcceptedPayorComment, \
+    provider_apc_table
 from provider.models.address import Address, provider_address_table
 from provider.models.base import Base
 from provider.models.credential import provider_credential_table, Credential
@@ -15,7 +17,6 @@ from provider.models.license import License
 from provider.models.modalities import provider_modality_table, Modality
 from provider.models.orientation import provider_orientation_table, Orientation
 from provider.models.payment_methods import provider_method_table, PaymentMethod
-from provider.models.payors import provider_payor_table, Payor
 from provider.models.phones import Phone, provider_phone_table
 from provider.models.plans import provider_plan_table, Plan
 from provider.models.specialties import provider_speciality_table, Specialty
@@ -123,6 +124,6 @@ class Provider(Base):
 
     groups = _relate(Group, provider_group_table)
 
-    accepted_payors = _relate(Payor, provider_payor_table)
+    accepted_payor_comments = _relate(AcceptedPayorComment, provider_apc_table)
 
     modalities = _relate(Modality, provider_modality_table)

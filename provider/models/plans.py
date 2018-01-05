@@ -2,6 +2,7 @@ from sqlalchemy import String, Column, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 
 from provider.models.base import Base, make_join_table
+from provider.models.payors import Payor
 
 provider_plan_table = make_join_table("provider", "plan")
 
@@ -18,6 +19,8 @@ class Plan(Base):
     """
 
     payor_id = Column(Integer, ForeignKey("payor.id"), nullable=False)
+
+    payor = relationship(Payor)
 
     #
     name = Column(String(128), nullable=False)

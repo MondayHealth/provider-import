@@ -10,7 +10,7 @@ class Modality(Base):
     """
     What sort of patients (couples, individuals, families, etc.)
     """
-    name = Column(String(64))
+    name = Column(String(64), unique=True, index=True)
 
     providers = relationship("Provider", secondary=provider_modality_table,
                              back_populates="modalities")

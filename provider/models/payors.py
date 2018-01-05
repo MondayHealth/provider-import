@@ -1,21 +1,15 @@
 from sqlalchemy import String, Column
 from sqlalchemy.orm import relationship
 
-from provider.models.base import Base, make_join_table
-from provider.models.plans import Plan
-
-provider_payor_table = make_join_table("provider", "payor")
+from provider.models.base import Base
 
 
 class Payor(Base):
     """
-
+    The name of the payor of a plan, like Anthem
     """
 
     #
     name = Column(String(16), nullable=False)
 
-    providers = relationship("Provider", secondary=provider_payor_table,
-                             back_populates="accepted_payors")
-
-    plans = relationship(Plan)
+    plans = relationship("Plan")
