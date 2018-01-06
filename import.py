@@ -1,5 +1,5 @@
+from importer.age_range_munger import AgeRangeMunger
 from importer.loader import CSVLoader
-from importer.modalities_munger import ModalityMunger
 from importer.munger import Munger
 
 
@@ -19,7 +19,8 @@ def run_from_command_line() -> None:
         # OrientationMunger,
         # GroupsMunger,
         # AcceptedPayorsMunger,
-        ModalityMunger,
+        # ModalityMunger,
+        AgeRangeMunger,
     )
 
     munger: Munger = Munger(plugins, True)

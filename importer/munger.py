@@ -52,7 +52,6 @@ class Munger:
         'began_practice': int,
         'school': str,
         'year_graduated': int,
-        'works_with_ages': str
     }
 
     def _directories(self, table: RawTable) -> None:

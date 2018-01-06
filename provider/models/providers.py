@@ -2,6 +2,7 @@ from typing import Type
 
 from sqlalchemy import String, Column, Integer, Text, Boolean, \
     DateTime, Table
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import relationship
 
@@ -11,15 +12,24 @@ from provider.models.address import Address, provider_address_table
 from provider.models.base import Base
 from provider.models.credential import provider_credential_table, Credential
 from provider.models.degree import Degree, provider_degree_table
+from provider.models.enum_array import EnumArray
 from provider.models.groups import provider_group_table, Group
 from provider.models.language import provider_language_table, Language
 from provider.models.license import License
 from provider.models.modalities import provider_modality_table, Modality
+from provider.models.numericrange_array import NumericRangeArray
 from provider.models.orientation import provider_orientation_table, Orientation
 from provider.models.payment_methods import provider_method_table, PaymentMethod
 from provider.models.phones import Phone, provider_phone_table
 from provider.models.plans import provider_plan_table, Plan
 from provider.models.specialties import provider_speciality_table, Specialty
+
+AGE_RANGE_NAMES = (
+    'children',
+    'teens',
+    'adults',
+    'elders',
+)
 
 
 def _relate(cls: Type[DeclarativeMeta], table: Table):
@@ -100,6 +110,11 @@ class Provider(Base):
 
     # TODO: List, ranges?
     works_with_ages = Column(Text())
+
+    age_ranges = Column(NumericRangeArray(postgresql.INT4RANGE, dimensions=1))
+
+    age_groups = Column(EnumArray(
+        postgresql.ENUM(*AGE_RANGE_NAMES, name='age_range_names')))
 
     # Custom association
     licenses = relationship(License, back_populates="licensee")
