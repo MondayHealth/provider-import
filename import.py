@@ -1,4 +1,3 @@
-from importer.age_range_munger import AgeRangeMunger
 from importer.loader import CSVLoader
 from importer.munger import Munger
 
@@ -8,6 +7,9 @@ def run_from_command_line() -> None:
     loader: CSVLoader = CSVLoader(base_path)
     loader.load()
     tables = loader.get_tables()
+
+    plugin_debug = True
+    update_provider_fields = False
 
     plugins = (
         # PhoneAddyMunger,
@@ -20,14 +22,14 @@ def run_from_command_line() -> None:
         # GroupsMunger,
         # AcceptedPayorsMunger,
         # ModalityMunger,
-        AgeRangeMunger,
+        # AgeRangeMunger,
     )
 
-    munger: Munger = Munger(plugins, True)
+    munger: Munger = Munger(plugins, plugin_debug)
     munger.update_fixtures()
     # Initial provider import
     munger.load_small_tables(tables)
-    munger.process_providers(tables, True)
+    munger.process_providers(tables, update_provider_fields)
     munger.clean()
 
 
