@@ -1,6 +1,6 @@
 from typing import Type
 
-from sqlalchemy import String, Column, Integer, Text, Boolean, \
+from sqlalchemy import String, Column, Integer, Boolean, \
     DateTime, Table
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.declarative import DeclarativeMeta
@@ -39,54 +39,11 @@ def _relate(cls: Type[DeclarativeMeta], table: Table):
 
 
 class Provider(Base):
-    """
-      create_table "provider_records", force: :cascade do |t|
-        t.integer "payor_id"
-        t.string "accepted_plan_ids"
-        t.string "first_name", null: false
-        t.string "last_name", null: false
-        t.string "license", null: false
-        t.string "address", null: false
-        t.string "phone"
-        t.text "specialties"
-        t.datetime "created_at", null: false
-        t.datetime "updated_at", null: false
-        t.integer "provider_id"
-        t.integer "directory_id"
-        t.string "certificate_number"
-        t.boolean "certified"
-        t.integer "minimum_fee"
-        t.integer "maximum_fee"
-        t.boolean "sliding_scale"
-        t.boolean "free_consultation"
-        t.text "services"
-        t.text "languages"
-        t.text "treatment_orientations"
-        t.text "works_with_groups"
-        t.text "works_with_ages"
-        t.text "website_url"
-        t.text "accepted_payors"
-        t.string "license_number"
-        t.boolean "accepting_new_patients"
-        t.text "modalities"
-        t.integer "years_in_practice"
-        t.string "school"
-        t.integer "year_graduated"
-        t.string "license_state"
-        t.string "accepted_payment_methods"
-        t.datetime "source_updated_at"
-        t.index ["first_name", "last_name", "directory_id"],
-            name: "first_last_directory_id", unique: true
-        t.index ["first_name", "last_name", "payor_id"],
-            name: "first_last_payor_id", unique: true
-      end
-    """
-
     first_name = Column(String(64), nullable=False)
 
     middle_name = Column(String(64))
 
-    last_name = Column(String(64), nullable=False)
+    last_name = Column(String(64), nullable=False, index=True)
 
     minimum_fee = Column(Integer())
 
@@ -107,9 +64,6 @@ class Provider(Base):
     year_graduated = Column(Integer())
 
     source_updated_at = Column(DateTime)
-
-    # TODO: List, ranges?
-    works_with_ages = Column(Text())
 
     age_ranges = Column(NumericRangeArray(postgresql.INT4RANGE, dimensions=1))
 
