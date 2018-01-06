@@ -27,7 +27,7 @@ def run_from_command_line() -> None:
     munger.update_fixtures()
     # Initial provider import
     munger.load_small_tables(tables)
-    munger.process_providers(tables, False)
+    munger.process_providers(tables, True)
     munger.clean()
 
 

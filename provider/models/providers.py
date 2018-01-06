@@ -1,8 +1,9 @@
 from typing import Type
 
 from sqlalchemy import String, Column, Integer, Boolean, \
-    DateTime, Table
+    DateTime, Table, Index
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import relationship
 
@@ -44,6 +45,8 @@ class Provider(Base):
     middle_name = Column(String(64))
 
     last_name = Column(String(64), nullable=False, index=True)
+
+    name_tsv = Column(TSVECTOR)
 
     minimum_fee = Column(Integer())
 
@@ -96,3 +99,8 @@ class Provider(Base):
     accepted_payor_comments = _relate(AcceptedPayorComment, provider_apc_table)
 
     modalities = _relate(Modality, provider_modality_table)
+
+
+Index("ix_monday_provider_name_gin",
+      Provider.name_tsv,
+      postgresql_using="gin")

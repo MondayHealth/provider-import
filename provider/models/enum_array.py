@@ -1,6 +1,7 @@
 import re
 
-from sqlalchemy import ARRAY, cast
+from sqlalchemy import cast
+from sqlalchemy.dialects.postgresql import ARRAY
 
 
 class EnumArray(ARRAY):

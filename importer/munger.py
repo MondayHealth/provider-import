@@ -133,6 +133,8 @@ class Munger:
         table = tables['provider_records']
         columns, rows = table.get_table_components()
 
+        name_modified: bool = False
+
         i = 0
         bar = progressbar.ProgressBar(max_value=len(rows), initial_value=i)
         for row in rows:
@@ -153,6 +155,7 @@ class Munger:
                 id=row_id).options(load_only("id")).one_or_none()
 
             if not provider or update_columns:
+                name_modified = True
                 args = {}
                 for k, v in self.ROW_FIELDS.items():
                     val = m(row, k, v)
@@ -189,6 +192,13 @@ class Munger:
 
         for plugin in self._plugins:
             plugin.post_process()
+
+        if name_modified:
+            self._session.execute("""
+            UPDATE monday.provider SET name_tsv = to_tsvector('english', 
+            coalesce(first_name,'') || ' ' || coalesce(middle_name,'') || ' ' 
+            || coalesce(last_name,''));
+            """)
 
     def clean(self) -> None:
         # Clean up

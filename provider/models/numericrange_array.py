@@ -13,8 +13,7 @@ class NumericRangeArray(ARRAY):
         super_rp = super().result_processor(dialect, col_type)
 
         def handle_raw_string(value):
-            inner = re.match(r"^{(.*)}$", value).group(1)
-            return inner.split(",") if inner else []
+            return value
 
         def process(value):
             if value is None:
