@@ -76,4 +76,5 @@ class AgeRangeMunger(MungerPlugin):
 
     def post_process(self):
         super().post_process()
-        print("Missed:", self._missed)
+        if self._debug and len(self._missed):
+            print("Missed:", self._missed)
