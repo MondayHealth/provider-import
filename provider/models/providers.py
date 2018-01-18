@@ -33,7 +33,7 @@ AGE_RANGE_NAMES = (
 )
 
 
-def _relate(cls: Type[DeclarativeMeta], table: Table):
+def _relate(cls: Type[Base], table: Table):
     return relationship(cls.__name__,
                         secondary=table,
                         back_populates="providers")
