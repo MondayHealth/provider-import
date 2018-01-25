@@ -4,7 +4,6 @@ from sqlalchemy import String, Column, Integer, Boolean, \
     DateTime, Table, Index
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import TSVECTOR
-from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import relationship
 
 from provider.models.accepted_payor_comment import AcceptedPayorComment, \
