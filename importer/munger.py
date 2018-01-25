@@ -213,6 +213,15 @@ class Munger:
         self._update_tsv("acceptedpayorcomment")
         self._update_tsv("address", "formatted_tsv", "formatted")
 
+        print("CLUSTER geometries...")
+        self._session.execute("""
+        CLUSTER ix_monday_address_point_gist ON monday.address;
+        """)
+        print("Done.")
+
+        print("Commit...")
+        self._session.commit()
+
         # Clean up
         print("Calling VACUUM FULL VERBOSE ANALYSE ...")
         connection = self._engine.raw_connection()
