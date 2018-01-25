@@ -60,11 +60,3 @@ class OrientationMunger(MungerPlugin):
         for record in records:
             if record not in already:
                 provider.treatment_orientations.append(record)
-
-    def post_process(self):
-        super().post_process()
-
-        print("\nUpdating...")
-        self._session.execute(
-            "UPDATE monday.orientation SET tsv = to_tsvector('english', body);")
-        print("Done")

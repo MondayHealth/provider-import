@@ -81,10 +81,31 @@ class GoogleMapsScanner:
         print("Queries:", queries)
         pprint.pprint(no_results)
 
+    def update(self) -> None:
+        print("Updating addresses.")
+        self._session.execute("""
+        UPDATE monday.address SET formatted = geocoding_api_response #>> '{
+        results,0,formatted_address}'
+        """)
+        self._session.commit()
+        print("Done")
+
+        print("Updating points.")
+        self._session.execute("""
+        UPDATE monday.address SET point = st_geomfromtext('POINT(' ||
+        (geocoding_api_response #>> '{results, 0, geometry, location, lat}') 
+        || ' ' ||
+        (geocoding_api_response #>> '{results, 0, geometry, location, lng}') 
+        || ')')
+        """)
+        self._session.commit()
+        print("Done")
+
 
 def run_from_command_line() -> None:
     gms = GoogleMapsScanner()
-    gms.scan()
+    # gms.scan()
+    gms.update()
 
 
 if __name__ == '__main__':
