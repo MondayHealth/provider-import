@@ -76,11 +76,3 @@ class AcceptedPayorsMunger(MungerPlugin):
         for record in records:
             if record not in already:
                 provider.accepted_payor_comments.append(record)
-
-    def post_process(self):
-        super().post_process()
-        print("\nUpdating...")
-        self._session.execute(
-            "UPDATE monday.acceptedpayorcomment SET tsv = to_tsvector("
-            "'english', body);")
-        print("Done")

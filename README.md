@@ -1,6 +1,9 @@
 # Install
 ## System requirements
-You must have python3.6 installed. Do this with homebrew.
+You must have python3.6 installed. Do this with homebrew. Install `Postgres10+`
+and `postgis` using homebrew. Before doing anything, make sure you can connect
+to postgres localy and that you do `CREATE EXTENSION postgis` followed by
+`CREATE EXTENSION postgis_topology`.
 
 ## virtualenv
 It is highly recommended to use a virtual environment (venv) which you can read

@@ -63,11 +63,3 @@ class GroupsMunger(MungerPlugin):
         for record in records:
             if record not in already:
                 provider.groups.append(record)
-
-    def post_process(self):
-        super().post_process()
-
-        print("\nUpdating...")
-        self._session.execute(
-            "UPDATE monday.group SET tsv = to_tsvector('english', body);")
-        print("Done")
