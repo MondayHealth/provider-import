@@ -1,3 +1,4 @@
+from clean import DatabaseCleaner
 from importer.loader import CSVLoader
 from importer.munger import Munger
 
@@ -30,7 +31,8 @@ def run_from_command_line() -> None:
     # Initial provider import
     munger.load_small_tables(tables)
     # munger.process_providers(tables, update_provider_fields)
-    munger.clean()
+    cleaner = DatabaseCleaner()
+    cleaner.clean()
 
 
 if __name__ == "__main__":

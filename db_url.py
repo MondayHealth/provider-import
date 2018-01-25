@@ -1,20 +1,29 @@
 import os
 
-BASE_URL = "postgresql://{user}:{pass}@{host}:5432/{db}"
-DEFAULT = {'db': 'postgres', 'host': 'localhost', 'user': 'postgres',
-           'pass': 'changeme123'}
+from sqlalchemy.engine.url import URL
+
+BASE_URL = "postgresql+psycopg2://{user}:{pass}@{host}:{port}/{db}"
+DEFAULT = {'database': 'postgres', 'host': 'localhost', 'username': 'postgres',
+           'password': 'changeme123', 'port': 5432,
+           'drivername': 'postgresql+psycopg2', 'query': None}
+
+RP = "bn{H2bD.^Q%d7ndgz97y"
 
 HOSTS = {
-    'pulsar': {'user': 'ixtli', 'pass': ''}
+    'pulsar': {'username': 'ixtli', 'password': ''},
+    'eddingtonlimit': {'username': 'root', 'password': RP, 'port': 9999},
+    'eddingtonlimit.local': {'username': 'root', 'password': RP, 'port': 9999}
 }
 
 # Cache this
 _node_name = os.uname()[1]
 
 
-def get_db_url() -> str:
+def get_db_url() -> URL:
     """ Dynamically get a PostgreSQL db connection string based on the env """
     if _node_name in HOSTS:
-        return BASE_URL.format(**{**DEFAULT, **HOSTS[_node_name]})
+        args = {**DEFAULT, **HOSTS[_node_name]}
     else:
-        return BASE_URL.format(**DEFAULT)
+        args = DEFAULT
+
+    return URL(**args)

@@ -2,7 +2,6 @@ import configparser
 from typing import Mapping, Type, Iterable, List
 
 import progressbar
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, Session, load_only
 
@@ -192,40 +191,3 @@ class Munger:
 
         for plugin in self._plugins:
             plugin.post_process()
-
-    def _update_tsv(self, table: str, field: str = "tsv",
-                    content: str = "body") -> None:
-        print("Updating", table, "tsv...")
-        self._session.execute(
-            "UPDATE monday.{} SET {} = to_tsvector('english', {});".format(
-                table, field, content))
-        print("Done.")
-
-    def clean(self) -> None:
-
-        print()
-        self._update_tsv("provider", "name_tsv", """
-        coalesce(first_name,'') || ' ' || coalesce(middle_name,'') || ' ' 
-            || coalesce(last_name,'')
-        """)
-        self._update_tsv("orientation")
-        self._update_tsv("group")
-        self._update_tsv("acceptedpayorcomment")
-        self._update_tsv("address", "formatted_tsv", "formatted")
-
-        print("CLUSTER geometries...")
-        self._session.execute("""
-        CLUSTER ix_monday_address_point_gist ON monday.address;
-        """)
-        print("Done.")
-
-        print("Commit...")
-        self._session.commit()
-
-        # Clean up
-        print("Calling VACUUM FULL VERBOSE ANALYSE ...")
-        connection = self._engine.raw_connection()
-        connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        cursor = connection.cursor()
-        cursor.execute("VACUUM FULL VERBOSE ANALYSE;")
-        print("Done.")
