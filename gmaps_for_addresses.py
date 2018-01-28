@@ -93,10 +93,10 @@ class GoogleMapsScanner:
         print("Updating points.")
         self._session.execute("""
         UPDATE monday.address SET point = st_geomfromtext('POINT(' ||
-        (geocoding_api_response #>> '{results, 0, geometry, location, lat}') 
-        || ' ' ||
         (geocoding_api_response #>> '{results, 0, geometry, location, lng}') 
-        || ')')
+        || ' ' ||
+        (geocoding_api_response #>> '{results, 0, geometry, location, lat}') 
+        || ')', 4326)
         """)
         self._session.commit()
         print("Done")
