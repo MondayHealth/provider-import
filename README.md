@@ -5,6 +5,9 @@ and `postgis` using homebrew. Before doing anything, make sure you can connect
 to postgres localy and that you do `CREATE EXTENSION postgis` followed by
 `CREATE EXTENSION postgis_topology`.
 
+Further, to use any functionality related to deduplication, you must be running
+redis 4+ locally. To do this just `brew install redis`.
+
 ## virtualenv
 It is highly recommended to use a virtual environment (venv) which you can read
 up on here: https://docs.python.org/3/tutorial/venv.html.

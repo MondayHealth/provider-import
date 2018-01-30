@@ -74,7 +74,6 @@ class CSVLoader:
         for name, path in self._discover_files(self._base_path):
             # Ignore anything we're not concerned with
             if name not in FILES:
-                print("Skipping file", name)
                 continue
             with open(path, newline='') as file:
                 reader = csv.DictReader(file)
