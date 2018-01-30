@@ -81,6 +81,9 @@ class GoogleMapsScanner:
         print("Queries:", queries)
         pprint.pprint(no_results)
 
+    def extract_zipcodes(self) -> None:
+        pass
+
     def update(self) -> None:
         print("Updating addresses.")
         self._session.execute("""

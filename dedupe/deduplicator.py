@@ -9,6 +9,14 @@ from importer.loader import RawTable
 from importer.util import m
 
 
+class Provider:
+    def __init__(self):
+        self._rows: List[OrderedDict] = []
+
+    def add_row(self, row: OrderedDict) -> None:
+        self._rows.append(row)
+
+
 class Deduplicator:
     """ Scan a data source (say, provider_records.xls) and generate a record
     map from its IDs to a unique, incrementing id in Redis. """
@@ -88,9 +96,6 @@ class Deduplicator:
         bar = progressbar.ProgressBar(max_value=len(rows), initial_value=i)
 
         for row in rows:
-
-            row_id: int = m(row, 'id', int)
-
             last_name: str = m(row, 'last_name', str, "")
 
             if not last_name:
@@ -110,35 +115,22 @@ class Deduplicator:
 
             record_hash = ".".join([first_name, last_name])
 
+            # This means that its someone with the same name orthography
             if record_hash in self._hash_row_map:
-                # This state shouldn't happen, so record it in order to print
                 if directory_id in self._hash_row_map[record_hash]:
+                    # This means that the same name for the same directory
                     dup_id = record_hash + "." + directory_id
                     if dup_id in self._duplicate_hashes:
                         self._duplicate_hashes[dup_id].append(row)
                     else:
                         self._duplicate_hashes[dup_id] = [row]
-                    continue
-                self._hash_row_map[record_hash][directory_id] = row
+                else:
+                    # This is just another directory entry for the same name
+                    self._hash_row_map[record_hash][directory_id] = row
                 continue
             else:
+                # Never seen this person before
                 self._hash_row_map[record_hash] = {directory_id: row}
-
-            if row_id in self._id_pid_map:
-                pid = self._id_pid_map[row_id]
-            else:
-                pid = self._pid_counter
-                self._pid_counter += 1
-
-            if self._update_cert_for_hash(row, pid, record_hash):
-                continue
-
-            if self._update_license_for_hash(row, pid, record_hash):
-                continue
-
-            self._hash_pid_map[record_hash] = pid
-            self._pid_hash_map[pid] = record_hash
-            self._id_pid_map[row_id] = pid
 
             i += 1
             bar.update(i)

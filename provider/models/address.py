@@ -1,5 +1,5 @@
 from geoalchemy2 import Geometry
-from sqlalchemy import Column, String, JSON, Index
+from sqlalchemy import Column, String, JSON, Index, Integer
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import relationship
 
@@ -23,6 +23,8 @@ class Address(Base):
     geocoding_api_response = Column(JSON())
 
     point = Column(Geometry)
+
+    zip_code = Column(Integer(), index=True)
 
     providers = relationship("Provider", secondary=provider_address_table,
                              back_populates="addresses")
