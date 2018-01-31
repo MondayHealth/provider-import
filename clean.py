@@ -15,6 +15,7 @@ class DatabaseCleaner:
             || coalesce(last_name,'')
         """),
         ("orientation",),
+        ("group",),
         ("acceptedpayorcomment",),
         ("address", "formatted_tsv", "formatted")
     ]

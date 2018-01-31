@@ -3,11 +3,11 @@ its response """
 import configparser
 import json
 import pprint
-from typing import Mapping, List
+from typing import Mapping, List, Set
 from urllib import request, parse
 
 import progressbar
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine, func, and_
 from sqlalchemy.orm import sessionmaker, scoped_session, Session, load_only
 
 from db_url import get_db_url
@@ -81,8 +81,61 @@ class GoogleMapsScanner:
         print("Queries:", queries)
         pprint.pprint(no_results)
 
+    @staticmethod
+    def _zips_from_results(results: List[dict]) -> Set[int]:
+        ret: Set[int] = set()
+        for result in results:
+            for component in result['address_components']:
+                types = set(component['types'])
+                if 'postal_code' in types:
+                    ret.add(int(component['short_name']))
+                    break
+        return ret
+
     def extract_zipcodes(self) -> None:
-        pass
+        row_count = self._session.query(func.count(Address.id)).filter(
+            and_(Address.geocoding_api_response.isnot(None)),
+            Address.zip_code.is_(None)).scalar()
+        query = self._session.query(Address) \
+            .options(load_only('geocoding_api_response')) \
+            .filter(and_(Address.geocoding_api_response.isnot(None),
+                         Address.zip_code.is_(None)))
+
+        print("Selecting", row_count, "rows...")
+        rows: List[Address] = query.all()
+        print("Complete")
+
+        pbar = progressbar.ProgressBar(max_value=row_count, initial_value=0)
+        i = 0
+        for row in rows:
+            assert row.geocoding_api_response is not None, "query is wrong"
+
+            if 'results' not in row.geocoding_api_response:
+                continue
+
+            results = row.geocoding_api_response['results']
+
+            if not results:
+                continue
+
+            if len(results) < 1:
+                continue
+
+            zips: Set[int] = self._zips_from_results(results)
+
+            if len(zips) < 1:
+                continue
+
+            if len(zips) > 1:
+                print(results)
+                continue
+
+            row.zip_code = list(zips)[0]
+
+            self._session.commit()
+
+            i += 1
+            pbar.update(i)
 
     def update(self) -> None:
         print("Updating addresses.")
@@ -108,7 +161,8 @@ class GoogleMapsScanner:
 def run_from_command_line() -> None:
     gms = GoogleMapsScanner()
     # gms.scan()
-    gms.update()
+    gms.extract_zipcodes()
+    # gms.update()
 
 
 if __name__ == '__main__':

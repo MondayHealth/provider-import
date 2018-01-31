@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Union, List
+from typing import Union, List, Set
 
 import phonenumbers
 from phonenumbers import PhoneNumber, NumberParseException
@@ -79,9 +79,8 @@ class PhoneAddyMunger(MungerPlugin):
 
         return p
 
-    def _cleanup_addresses(self, raw_address: str) -> List[Address]:
-        ret = []
-
+    @staticmethod
+    def parse_raw_address(raw_address: str) -> Set[str]:
         addresses = set()
         current = ''
         for token in raw_address.split("\n"):
@@ -91,8 +90,12 @@ class PhoneAddyMunger(MungerPlugin):
                 continue
             current = current + token.strip() + " "
         addresses.add(current.strip())
+        return addresses
 
-        for a in addresses:
+    def _cleanup_addresses(self, raw_address: str) -> List[Address]:
+        ret = []
+
+        for a in self.parse_raw_address(raw_address):
             found = self._session.query(Address).filter_by(raw=a).one_or_none()
 
             if not found:
