@@ -24,6 +24,13 @@ out of the `./venv/bin/` directory OR you can run the `./venv/bin/activate`
 script which will configure your current shell in such a way that it only uses
 the current venv.
 
+### Run
+1. Set up the db with `alembic upgrade head` from the roo
+1. Generate deduplication indicies by running `build_dedup_maps.py`
+1. Import the XLS files by running `import.py`
+1. Update address lat/lng points by running `gmaps_for_addresses.py`
+1. Clean and update indicies by running `clean.py`
+
 # Development
 ## Dependencies
 Any time you add a dep (either in pycharm or cli) you should freeze the reqs

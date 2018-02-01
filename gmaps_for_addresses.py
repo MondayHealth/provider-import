@@ -50,7 +50,7 @@ class GoogleMapsScanner:
             .options(load_only('raw')) \
             .filter(Address.geocoding_api_response.is_(None))
 
-        print("Selecting", row_count, "rows...")
+        print("Selecting", row_count, "rows to ask Google about...")
         rows: List[Address] = query.all()
         print("Complete")
 
@@ -101,7 +101,7 @@ class GoogleMapsScanner:
             .filter(and_(Address.geocoding_api_response.isnot(None),
                          Address.zip_code.is_(None)))
 
-        print("Selecting", row_count, "rows...")
+        print("Selecting", row_count, "rows from which to extract zips...")
         rows: List[Address] = query.all()
         print("Complete")
 
@@ -127,7 +127,7 @@ class GoogleMapsScanner:
                 continue
 
             if len(zips) > 1:
-                print(results)
+                print("Multiple results for", row.raw)
                 continue
 
             row.zip_code = list(zips)[0]
@@ -163,9 +163,9 @@ class GoogleMapsScanner:
 
 def run_from_command_line() -> None:
     gms = GoogleMapsScanner()
-    # gms.scan()
+    gms.scan()
     gms.extract_zipcodes()
-    # gms.update()
+    gms.update()
 
 
 if __name__ == '__main__':
