@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, List
 
 from sqlalchemy import String, Column, Integer, Boolean, \
     DateTime, Table, Index
@@ -73,19 +73,21 @@ class Provider(Base):
         postgresql.ENUM(*AGE_RANGE_NAMES, name='age_range_names')))
 
     # Custom association
-    licenses = relationship(License, back_populates="licensee")
+    licenses: List[License] = relationship(License, back_populates="licensee")
 
-    addresses = _relate(Address, provider_address_table)
+    addresses: List[Address] = _relate(Address, provider_address_table)
 
-    phone_numbers = _relate(Phone, provider_phone_table)
+    phone_numbers: List[Phone] = _relate(Phone, provider_phone_table)
 
-    credentials = _relate(Credential, provider_credential_table)
+    credentials: List[Credential] = _relate(Credential,
+                                            provider_credential_table)
 
-    degrees = _relate(Degree, provider_degree_table)
+    degrees: List[Degree] = _relate(Degree, provider_degree_table)
 
-    payment_methods = _relate(PaymentMethod, provider_method_table)
+    payment_methods: List[PaymentMethod] = _relate(PaymentMethod,
+                                                   provider_method_table)
 
-    plans_accepted = _relate(Plan, provider_plan_table)
+    plans_accepted: List[Plan] = _relate(Plan, provider_plan_table)
 
     specialties = _relate(Specialty, provider_speciality_table)
 

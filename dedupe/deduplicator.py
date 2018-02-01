@@ -167,10 +167,11 @@ class Deduplicator:
         self._number_records()
 
         # set redis map
+        REDIS.delete(ROW_ID_HASH)
         REDIS.hmset(ROW_ID_HASH, self.row_id_to_generated)
 
     def _number_records(self):
-        id_counter = 0
+        id_counter = 1
         for last_name, bucket in self.uniques_by_last_name.items():
             for record in bucket:
                 for row_id in record.ids:
@@ -179,7 +180,7 @@ class Deduplicator:
                     else:
                         self.row_id_to_generated[row_id] = id_counter
                 id_counter += 1
-        print(id_counter, "records")
+        print(id_counter - 1, "records")
 
     @staticmethod
     def _deduplicate_map(records_by_last_name: NAME_LIST_MAP) -> NAME_LIST_MAP:

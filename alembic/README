@@ -1,17 +1,6 @@
 
 # TODO
 services from goodtherapy should be parsed in the same way as modality
-
 credentials finds modalities, add them to the user record
 
-school/year graduated should ONLY come from the NYDB
-
-payor_id = whether or not that person showed up in the payor scrape
-accepted_payors = comes from PT, GT, so remove
-
-payor_id -> verified_payors
-accepted_payors -> self_reported_payors
-
-
-certificate_number = ABPN only
-certified = whether or not that cert number is currently valid
+Update field overrides for those fields that shouldn't clobber if from NYDB

@@ -1,18 +1,18 @@
 import configparser
-from typing import Mapping, Type, Iterable, List
+from typing import Mapping, Type, Iterable, List, MutableMapping, Set, Union
 
 import progressbar
+from redis import StrictRedis
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session, Session, load_only
+from sqlalchemy.orm import sessionmaker, scoped_session, Session
 
 from db_url import get_db_url
+from dedupe.deduplicator import ROW_ID_HASH
 from importer.fixture_updater import FixtureUpdater
 from importer.loader import RawTable
 from importer.munger_plugin_base import MungerPlugin
 from importer.util import mutate, m
 from provider.models.directories import Directory
-from provider.models.license import License
-from provider.models.licensor import Licensor
 from provider.models.payors import Payor
 from provider.models.plans import Plan
 from provider.models.providers import Provider
@@ -34,23 +34,21 @@ def labeled_bar(name: str) -> progressbar.ProgressBar:
 class Munger:
     """ Take a bunch of raw tables and create a bulk insertion """
 
-    NYSOP_NAME = "New York State Office of the Professions"
-
     ROW_FIELDS = {
-        'source_updated_at': str,
-        'created_at': str,
-        'updated_at': str,
-        'first_name': str,
-        'last_name': str,
-        'maximum_fee': int,
-        'minimum_fee': int,
-        'sliding_scale': bool,
-        'free_consultation': bool,
-        'website_url': str,
-        'accepting_new_patients': bool,
-        'began_practice': int,
-        'school': str,
-        'year_graduated': int,
+        'source_updated_at': (str, None),
+        'created_at': (str, None),
+        'updated_at': (str, None),
+        'first_name': (str, (4, 3)),
+        'last_name': (str, None),
+        'maximum_fee': (int, (4,)),
+        'minimum_fee': (int, (4,)),
+        'sliding_scale': (bool, (4,)),
+        'free_consultation': (bool, (3,)),
+        'website_url': (str, (4,)),
+        'accepting_new_patients': (bool, None),
+        'began_practice': (int, (4,)),
+        'school': (str, None),
+        'year_graduated': (int, None),
     }
 
     def _directories(self, table: RawTable) -> None:
@@ -93,24 +91,12 @@ class Munger:
         self._Session = scoped_session(session_factory)
         self._Session.configure()
         self._session: Session = self._Session()
-        self._load_nysop()
+        self._r = StrictRedis(decode_responses=True)
 
         # init plugins with session
         self._plugins: List[MungerPlugin] = []
         for constructor in plugins:
             self._plugins.append(constructor(self._session, debug))
-
-    def _load_nysop(self):
-        # Construct the NYS OP licensor
-        nysop = self._session.query(Licensor).filter_by(
-            name=self.NYSOP_NAME).one_or_none()
-
-        if not nysop:
-            print("Constructing", self.NYSOP_NAME)
-            nysop = Licensor(name=self.NYSOP_NAME, state="NY")
-            self._session.add(nysop)
-
-        self._nysop: Licensor = nysop
 
     def update_fixtures(self) -> None:
         fu = FixtureUpdater(self._session)
@@ -132,53 +118,62 @@ class Munger:
         table = tables['provider_records']
         columns, rows = table.get_table_components()
 
+        directories: MutableMapping[int, Set[int]] = {}
+
         i = 0
         bar = progressbar.ProgressBar(max_value=len(rows), initial_value=i)
         for row in rows:
-            row_id = m(row, 'id', int)
-            license_number = m(row, 'license_number', str)
 
-            # Try to find a license number
-            lic = None
-            if license_number:
-                q = self._session.query(License).filter_by(
-                    number=license_number, licensor_id=self._nysop.id)
-                lic = q.options(load_only("licensee_id")).one_or_none()
-                if lic:
-                    row_id = lic.licensee_id
+            row_id = m(row, 'id', int)
+
+            assert row_id, "there must be a row id"
+
+            directory_id: int = m(row, 'directory_id', int, None)
+            if not directory_id:
+                directory_id = m(row, 'payor_id', int, None)
+            assert directory_id, "no directory or payor"
+            row['_directory'] = directory_id
+
+            canonical_id: int = int(self._r.hget(ROW_ID_HASH, row_id))
 
             # Does this provider exist?
             provider: Provider = self._session.query(Provider).filter_by(
-                id=row_id).options(load_only("id")).one_or_none()
+                id=canonical_id).one_or_none()
 
             if not provider or update_columns:
+                dirs: Union[int, None] = directories.get(canonical_id, None)
                 args = {}
                 for k, v in self.ROW_FIELDS.items():
-                    val = m(row, k, v)
+                    coercer, priorities = v
+
+                    if dirs:
+                        for priority in priorities:
+                            # Are we this priority?
+                            if directory_id == priority:
+                                break
+                            # Do we already have a higher priority?
+                            if priority in dirs:
+                                continue
+
+                    # Get the value
+                    val = m(row, k, coercer)
+
                     # This check is important because we want fields that are
                     # set to null to not overwrite existing fields from other
                     # record sources
                     if val is not None:
                         args[k] = val
-                provider: Provider = Provider(id=row_id, **args)
+                provider: Provider = Provider(id=canonical_id, **args)
                 provider = self._session.merge(provider)
-
-            # Add the nysop license if its not there
-            if not lic and license_number:
-                lic = License(number=license_number, licensee=provider,
-                              licensor=self._nysop)
-                """
-                It's a requirement of association tables in sqlalchemy that the
-                "child" in the relationship must be explicitly associated with
-                the association record. see:
-                docs.sqlalchemy.org/en/latest/orm/basic_relationships.html
-                #association-object
-                """
-                provider.licenses.append(lic)
 
             # Do all the plugins
             for plugin in self._plugins:
                 plugin.process_row(row, provider)
+
+            if canonical_id not in directories:
+                directories[canonical_id] = {directory_id}
+            else:
+                directories[canonical_id].add(directory_id)
 
             self._session.commit()
             i += 1

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Index
+from sqlalchemy import Column, Integer, Index, Boolean
 from sqlalchemy.orm import relationship
 
 from provider.models.address import phone_address_table
@@ -20,6 +20,8 @@ class Phone(Base):
 
     # Extension
     extension = Column(Integer())
+
+    directory = Column(Integer())
 
     providers = relationship("Provider", secondary=provider_phone_table,
                              back_populates="phone_numbers")
