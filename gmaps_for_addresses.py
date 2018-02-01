@@ -132,10 +132,13 @@ class GoogleMapsScanner:
 
             row.zip_code = list(zips)[0]
 
-            self._session.commit()
+            if i % 1000:
+                self._session.commit()
 
             i += 1
             pbar.update(i)
+
+        self._session.commit()
 
     def update(self) -> None:
         print("Updating addresses.")

@@ -17,6 +17,7 @@ from provider.models.address import Address
 from provider.models.providers import Provider
 
 ZIP_HASH = "ZIPS"
+ROW_ID_HASH = "RIH"
 
 REDIS: StrictRedis = StrictRedis()
 
@@ -26,13 +27,15 @@ class Record:
     def __init__(self, row: OrderedDict):
         self.last_name = None
         self.first_name: str = None
-        self.ids: Set[str] = set()
+        self.ids: Set[int] = set()
         self.rows: List[OrderedDict] = []
         self.directories: Set[str] = set()
         self.zips: Set[str] = set()
         self.licenses: Set[str] = set()
         self.certificates: Set[str] = set()
         self.first_initials: Set[str] = set()
+
+        self.generated_id = -1
 
         self.merge(row)
 
@@ -45,7 +48,7 @@ class Record:
         else:
             self.last_name = ln
 
-        row_id: str = m(row, 'id', str)
+        row_id: int = m(row, 'id', int)
         assert row_id, "no row id"
         self.ids.add(row_id)
 
@@ -84,6 +87,13 @@ class Record:
 
         self.rows.append(row)
 
+    def hash(self) -> str:
+        return self.first_name + self.last_name
+
+    def __str__(self) -> str:
+        return "{} {} {}".format(self.first_name, self.last_name,
+                                 ",".join(self.zips))
+
     def is_same_person(self, other: 'Record') -> bool:
         # If the provider IDs are the same, they're the same person
         if self.ids.intersection(other.ids):
@@ -109,23 +119,30 @@ class Record:
         return False
 
 
+NAME_LIST_MAP = MutableMapping[str, List[Record]]
+
+
 class Deduplicator:
     """ Scan a data source (say, provider_records.xls) and generate a record
     map from its IDs to a unique, incrementing id in Redis. """
 
     def __init__(self):
-        self.uniques_by_last_name: MutableMapping[str, List[Record]] = {}
+        self.uniques_by_last_name: NAME_LIST_MAP = {}
+        self.full_name_map: NAME_LIST_MAP = {}
+        self.ambiguous_records: MutableMapping[str, OrderedDict] = {}
+        self.row_id_to_generated: MutableMapping[int, int] = {}
 
     def build_index(self, tables: Mapping[str, RawTable]) -> None:
         table = tables['provider_records']
         columns, rows = table.get_table_components()
 
-        records_by_last_name: MutableMapping[str, List[Record]] = {}
+        records_by_last_name: NAME_LIST_MAP = {}
 
         i = 0
         bar = progressbar.ProgressBar(max_value=len(rows), initial_value=i)
         for row in rows:
             r = Record(row)
+
             if r.last_name not in records_by_last_name:
                 records_by_last_name[r.last_name] = [r]
             else:
@@ -133,6 +150,40 @@ class Deduplicator:
             i += 1
             bar.update(i)
 
+        records_by_last_name = self._deduplicate_map(records_by_last_name)
+        records_by_last_name = self._deduplicate_map(records_by_last_name)
+        self.uniques_by_last_name = records_by_last_name
+
+        print()
+
+        for last_name, bucket in records_by_last_name.items():
+            for record in bucket:
+                full_name = record.hash()
+                if full_name not in self.full_name_map:
+                    self.full_name_map[full_name] = [record]
+                else:
+                    self.full_name_map[full_name].append(record)
+
+        self._number_records()
+
+        # set redis map
+        REDIS.hmset(ROW_ID_HASH, self.row_id_to_generated)
+
+    def _number_records(self):
+        id_counter = 0
+        for last_name, bucket in self.uniques_by_last_name.items():
+            for record in bucket:
+                for row_id in record.ids:
+                    if row_id in self.row_id_to_generated:
+                        print(row_id, "ambiguous for", record)
+                    else:
+                        self.row_id_to_generated[row_id] = id_counter
+                id_counter += 1
+        print(id_counter, "records")
+
+    @staticmethod
+    def _deduplicate_map(records_by_last_name: NAME_LIST_MAP) -> NAME_LIST_MAP:
+        ret: NAME_LIST_MAP = {}
         total = 0
         i = 0
         bar = progressbar.ProgressBar(max_value=len(records_by_last_name),
@@ -149,10 +200,11 @@ class Deduplicator:
                         found = True
                 if not found:
                     uniques.append(record)
-            self.uniques_by_last_name[last_name] = uniques
+            ret[last_name] = uniques
             total += len(uniques)
             i += 1
             bar.update(i)
+        return ret
 
     def csv(self):
         # Create an new Excel file and add a worksheet.
@@ -173,10 +225,12 @@ class Deduplicator:
 
         # Write some simple text.
         row_index = 1
+        count = 0
         for last_name, uniques in self.uniques_by_last_name.items():
-            if len(uniques) < 2:
-                continue
             for unique in uniques:
+                count += 1
+                if len(self.full_name_map[unique.hash()]) < 2:
+                    continue
                 addresses = ""
                 licenses = ""
                 directories = ";".join(unique.directories)
@@ -192,6 +246,8 @@ class Deduplicator:
                 row_index += 1
 
         workbook.close()
+        print()
+        print(count, "total records")
 
     def build_zip_map(self):
         config = configparser.ConfigParser()
@@ -216,6 +272,6 @@ class Deduplicator:
         pbar = progressbar.ProgressBar(max_value=count, initial_value=0)
         i = 0
         for row in rows:
-            self._r.hset(ZIP_HASH, row.raw, row.zip_code)
+            REDIS.hset(ZIP_HASH, row.raw, row.zip_code)
             i += 1
             pbar.update(i)

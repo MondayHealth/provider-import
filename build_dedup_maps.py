@@ -8,9 +8,9 @@ def run_from_cli():
     loader.load()
     tables = loader.get_tables()
     d = Deduplicator()
+    # d.build_zip_map()
     d.build_index(tables)
-    #d.build_zip_map()
-    d.csv()
+    # d.csv()
 
 
 if __name__ == "__main__":
