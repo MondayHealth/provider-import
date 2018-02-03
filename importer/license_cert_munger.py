@@ -55,14 +55,15 @@ class LicenseCertMunger(MungerPlugin):
             if not lic:
                 lic = License(number=license_number, licensee=provider,
                               licensor=self._nysop)
-                """
-                It's a requirement of association tables in sqlalchemy that the
-                "child" in the relationship must be explicitly associated with
-                the association record. see:
-                docs.sqlalchemy.org/en/latest/orm/basic_relationships.html
-                #association-object
-                """
-                provider.licenses.append(lic)
+
+            """
+            It's a requirement of association tables in sqlalchemy that the
+            "child" in the relationship must be explicitly associated with
+            the association record. see:
+            docs.sqlalchemy.org/en/latest/orm/basic_relationships.html
+            #association-object
+            """
+            provider.licenses.append(lic)
 
         cert_number = m(row, 'certificate_number', str)
         if cert_number:
@@ -73,4 +74,4 @@ class LicenseCertMunger(MungerPlugin):
             if not cert:
                 cert = License(number=cert_number, licensor=self._abpn,
                                licensee=provider)
-                provider.licenses.append(cert)
+            provider.licenses.append(cert)
