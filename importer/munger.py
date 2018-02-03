@@ -34,6 +34,7 @@ def labeled_bar(name: str) -> progressbar.ProgressBar:
 class Munger:
     """ Take a bunch of raw tables and create a bulk insertion """
 
+    # 3 == good therapy, 4 == pn
     ROW_FIELDS = {
         'source_updated_at': (str, None),
         'created_at': (str, None),
@@ -128,11 +129,7 @@ class Munger:
 
             assert row_id, "there must be a row id"
 
-            directory_id: int = m(row, 'directory_id', int, None)
-            if not directory_id:
-                directory_id = m(row, 'payor_id', int, None)
-            assert directory_id, "no directory or payor"
-            row['_directory'] = directory_id
+            directory_id: Union[int, None] = m(row, 'directory_id', int)
 
             canonical_id: int = int(self._r.hget(ROW_ID_HASH, row_id))
 
@@ -143,17 +140,22 @@ class Munger:
             if not provider or update_columns:
                 dirs: Union[int, None] = directories.get(canonical_id, None)
                 args = {}
+
                 for k, v in self.ROW_FIELDS.items():
                     coercer, priorities = v
 
                     if dirs:
+                        skip = False
                         for priority in priorities:
                             # Are we this priority?
                             if directory_id == priority:
                                 break
                             # Do we already have a higher priority?
                             if priority in dirs:
+                                skip = True
                                 continue
+                        if skip:
+                            continue
 
                     # Get the value
                     val = m(row, k, coercer)
@@ -170,6 +172,8 @@ class Munger:
             for plugin in self._plugins:
                 plugin.process_row(row, provider)
 
+            # Save the directories processed for this canonical ID so that when
+            # we find another one we can evaluate priority
             if canonical_id not in directories:
                 directories[canonical_id] = {directory_id}
             else:

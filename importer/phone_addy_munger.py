@@ -27,7 +27,7 @@ class PhoneAddyMunger(MungerPlugin):
         """
         return raw.replace("ext.", "")
 
-    def _phone_or_new(self, raw: str, dn: int) -> Union[Phone, None]:
+    def _phone_or_new(self, raw: str) -> Union[Phone, None]:
         if len(raw) < 10:
             print('Too short', raw)
             return None
@@ -61,17 +61,12 @@ class PhoneAddyMunger(MungerPlugin):
 
         if not found:
             inst = Phone(**args)
-            inst.directory = dn
             self._session.add(inst)
             found = inst
-        else:
-            # This needs to override because they are both bad
-            if dn == 3 or dn == 4:
-                found.directory = dn
 
         return found
 
-    def _cleanup_phone_numbers(self, raw_phone: str, dn: int) -> List[Phone]:
+    def _cleanup_phone_numbers(self, raw_phone: str) -> List[Phone]:
         p = []
         phone_numbers = set()
 
@@ -79,7 +74,7 @@ class PhoneAddyMunger(MungerPlugin):
             if token:
                 phone_numbers.add(token.strip())
         for pn in phone_numbers:
-            nn = self._phone_or_new(pn, dn)
+            nn = self._phone_or_new(pn)
             if nn:
                 p.append(nn)
 
@@ -116,12 +111,18 @@ class PhoneAddyMunger(MungerPlugin):
         raw_address = m(row, 'address', str)
         raw_phone = m(row, 'phone', str)
 
+        # A little hack
+        directory_id: Union[int, None] = m(row, 'directory_id', int, None)
+        if not directory_id:
+            directory_id = None
+
         # Break up the addy and phones and insert them
         if raw_address:
             for address in self._cleanup_addresses(raw_address):
+                address.directory_id = directory_id
                 provider.addresses.append(address)
 
         if raw_phone:
-            did = row['_directory']
-            for number in self._cleanup_phone_numbers(raw_phone, did):
+            for number in self._cleanup_phone_numbers(raw_phone):
+                number.directory_id = directory_id
                 provider.phone_numbers.append(number)
