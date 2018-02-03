@@ -1,6 +1,11 @@
 
 # TODO
+Deduplicate based on degree, credential
+
 services from goodtherapy should be parsed in the same way as modality
 credentials finds modalities, add them to the user record
 
 Update field overrides for those fields that shouldn't clobber if from NYDB
+
+Add directory where addresss was found
+
