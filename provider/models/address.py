@@ -22,6 +22,8 @@ class Address(Base):
 
     geocoding_api_response = Column(JSON())
 
+    directory_id = Column(Integer(), index=True)
+
     point = Column(Geometry)
 
     zip_code = Column(Integer(), index=True)
