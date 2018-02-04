@@ -1,7 +1,9 @@
 import configparser
+import pprint
 from collections import OrderedDict
 from typing import Mapping, List, Set, MutableMapping
 
+# noinspection PyPackageRequirements
 import progressbar
 import xlsxwriter
 from redis import StrictRedis
@@ -24,7 +26,6 @@ REDIS: StrictRedis = StrictRedis()
 
 
 class Record:
-
     INITIAL_COUNT: int = 4
 
     def __init__(self, row: OrderedDict):
@@ -37,7 +38,8 @@ class Record:
         self.licenses: Set[str] = set()
         self.certificates: Set[str] = set()
         self.first_initials: Set[str] = set()
-        self.creds: CredentialParser = None
+        self.full_names: Set[str] = set()
+        self.credentials: CredentialParser = None
 
         self.generated_id = -1
 
@@ -46,9 +48,18 @@ class Record:
     def merge(self, row: OrderedDict):
         ln: str = m(row, 'last_name', str, "")
         assert ln, "no last name"
+
+        fn: str = m(row, 'first_name', str, "")
+        fn = "".join(fn.replace(".", "").split()).lower()
+
         ln = "".join(ln.replace(".", "").split()).lower()
         if self.last_name:
-            assert ln == self.last_name, "differing last name merge"
+            if ln != self.last_name:
+                if not fn:
+                    raise Exception("No fn, differing last name")
+                prospective_full_name = fn + ln
+                if prospective_full_name not in self.full_names:
+                    raise Exception("differing last name merge")
         else:
             self.last_name = ln
 
@@ -82,21 +93,16 @@ class Record:
                 raise Exception("XXX", "no directory or payor")
         self.directories.add(directory_id)
 
-        fn: str = m(row, 'first_name', str, "")
-        fn = "".join(fn.replace(".", "").split()).lower()
         if fn:
             if not self.first_name:
                 self.first_name = fn
             self.first_initials.add(fn[:self.INITIAL_COUNT])
+            self.full_names.add(fn + self.last_name)
 
         # Parse credentials
-        d = "{:<30} {}".format(fn + " " + ln, row_id)
-        self.creds = CredentialParser(row['license'], d)
+        self.credentials = CredentialParser(row['license'], str(row_id))
 
         self.rows.append(row)
-
-    def hash(self) -> str:
-        return self.first_name + self.last_name
 
     def __str__(self) -> str:
         return "{} {} {}".format(self.first_name, self.last_name,
@@ -107,8 +113,13 @@ class Record:
         if self.ids.intersection(other.ids):
             return True
 
+        names_intersect = len(
+            other.full_names.intersection(self.full_names)) > 0
+
+        last_names_equal = other.last_name == self.last_name
+
         # If they have different last names they're not the same
-        if other.last_name != self.last_name:
+        if not last_names_equal and not names_intersect:
             return False
 
         # If they have the same certificate number, they're the same
@@ -119,11 +130,14 @@ class Record:
         if other.licenses.intersection(self.licenses):
             return True
 
+        first_initials_match = len(other.first_initials.intersection(
+            self.first_initials)) > 0
+
         # The last two cases need the name to be very similar
-        if other.first_initials.intersection(self.first_initials):
+        if first_initials_match or names_intersect:
             if other.zips.intersection(self.zips):
                 return True
-            if other.creds.deduplicate(other.creds):
+            if other.credentials.deduplicate(other.credentials):
                 return True
 
         return False
@@ -148,10 +162,29 @@ class Deduplicator:
 
         records_by_last_name: NAME_LIST_MAP = {}
 
+        print("Building record set from provider_records...")
         i = 0
         bar = progressbar.ProgressBar(max_value=len(rows), initial_value=i)
         for row in rows:
             r = Record(row)
+
+            # Because full names dont bucket by last name, and because they are
+            # a very small set, do this deduplication inline
+            found = False
+            for full_name in r.full_names:
+                if full_name not in self.full_name_map:
+                    self.full_name_map[full_name] = [r]
+                else:
+                    for existing in self.full_name_map[full_name]:
+                        if existing.is_same_person(r):
+                            existing.merge(row)
+                            found = True
+                            break
+                    if not found:
+                        self.full_name_map[full_name].append(r)
+
+            if found:
+                continue
 
             if r.last_name not in records_by_last_name:
                 records_by_last_name[r.last_name] = [r]
@@ -164,21 +197,15 @@ class Deduplicator:
         records_by_last_name = self._deduplicate_map(records_by_last_name)
         self.uniques_by_last_name = records_by_last_name
 
-        print()
-
-        for last_name, bucket in records_by_last_name.items():
-            for record in bucket:
-                full_name = record.hash()
-                if full_name not in self.full_name_map:
-                    self.full_name_map[full_name] = [record]
-                else:
-                    self.full_name_map[full_name].append(record)
-
         self._number_records()
 
+    def update_map_destructively(self) -> None:
+        print()
+        print(" *** Updating REDIS map. This may change all index mapping!")
         # set redis map
         REDIS.delete(ROW_ID_HASH)
         REDIS.hmset(ROW_ID_HASH, self.row_id_to_generated)
+        print(" *** Done. You may want to truncate monday.provider now!")
 
     def _number_records(self):
         id_counter = 1
@@ -197,6 +224,8 @@ class Deduplicator:
         ret: NAME_LIST_MAP = {}
         total = 0
         i = 0
+        print()
+        print("Deduplicating map...")
         bar = progressbar.ProgressBar(max_value=len(records_by_last_name),
                                       initial_value=i)
         for last_name, records in records_by_last_name.items():
@@ -237,11 +266,11 @@ class Deduplicator:
         # Write some simple text.
         row_index = 1
         count = 0
-        for last_name, uniques in self.uniques_by_last_name.items():
+        for full_name, uniques in self.full_name_map.items():
+            if len(uniques) < 2:
+                continue
             for unique in uniques:
                 count += 1
-                if len(self.full_name_map[unique.hash()]) < 2:
-                    continue
                 addresses = ""
                 licenses = ""
                 directories = ";".join(unique.directories)
@@ -258,7 +287,7 @@ class Deduplicator:
 
         workbook.close()
         print()
-        print(count, "total records")
+        print("wrote", count, "total records to CSV")
 
     @staticmethod
     def build_zip_map():
@@ -272,7 +301,9 @@ class Deduplicator:
         ss.configure()
         session: Session = ss()
 
+        # noinspection PyUnresolvedReferences
         f = Address.zip_code.isnot(None)
+        # noinspection PyUnresolvedReferences
         count = session.query(func.count(Address.id)).filter(f).scalar()
         query = session.query(Address).options(
             load_only('raw', 'zip_code')).filter(f)

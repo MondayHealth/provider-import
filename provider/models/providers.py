@@ -12,6 +12,7 @@ from provider.models.address import Address, provider_address_table
 from provider.models.base import Base
 from provider.models.credential import provider_credential_table, Credential
 from provider.models.degree import Degree, provider_degree_table
+from provider.models.directories import Directory, provider_directory_table
 from provider.models.enum_array import EnumArray
 from provider.models.groups import provider_group_table, Group
 from provider.models.language import provider_language_table, Language
@@ -74,6 +75,8 @@ class Provider(Base):
 
     # Custom association
     licenses: List[License] = relationship(License, back_populates="licensee")
+
+    directories: List[Directory] = _relate(Directory, provider_directory_table)
 
     addresses: List[Address] = _relate(Address, provider_address_table)
 

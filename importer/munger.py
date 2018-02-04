@@ -58,7 +58,8 @@ class Munger:
         bar = progressbar.ProgressBar(max_value=len(rows))
         for row in rows:
             mutate(row, 'record_limit', int)
-            self._session.merge(Directory(**row))
+            directory = self._session.merge(Directory(**row))
+            self._directory_map[directory.id] = directory
             bar.update(i)
             i = i + 1
 
@@ -83,6 +84,9 @@ class Munger:
             i = i + 1
 
     def __init__(self, plugins: Iterable[Type[MungerPlugin]], debug: bool):
+
+        assert "id" not in self.ROW_FIELDS, "Should not set ID!"
+
         config = configparser.ConfigParser()
         config.read("alembic.ini")
         url = get_db_url()
@@ -93,6 +97,8 @@ class Munger:
         self._Session.configure()
         self._session: Session = self._Session()
         self._r = StrictRedis(decode_responses=True)
+
+        self._directory_map: MutableMapping[int, Directory] = {}
 
         # init plugins with session
         self._plugins: List[MungerPlugin] = []
@@ -167,6 +173,10 @@ class Munger:
                         args[k] = val
                 provider: Provider = Provider(id=canonical_id, **args)
                 provider = self._session.merge(provider)
+
+            # Relate the provider to the directory
+            if directory_id and directory_id in self._directory_map:
+                provider.directories.append(self._directory_map[directory_id])
 
             # Do all the plugins
             for plugin in self._plugins:

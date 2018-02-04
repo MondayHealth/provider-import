@@ -1,6 +1,9 @@
 from sqlalchemy import String, Column, Integer
+from sqlalchemy.orm import relationship
 
-from provider.models.base import Base
+from provider.models.base import Base, make_join_table
+
+provider_directory_table = make_join_table("provider", "directory")
 
 
 class Directory(Base):
@@ -16,3 +19,6 @@ class Directory(Base):
 
     #
     record_limit = Column(Integer)
+
+    providers = relationship("Provider", secondary=provider_directory_table,
+                             back_populates="directories")

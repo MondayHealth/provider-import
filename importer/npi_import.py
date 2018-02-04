@@ -39,7 +39,7 @@ class NPIImporter:
         idx = 0
         matched = 0
 
-        q = self._session.query(License).filter_by(licensor_id=1).options(
+        q = self._session.query(License).options(
             load_only("number", "licensee_id"))
         print("Loading all licenses...")
         nys_license_map: MutableMapping[str, int] = {}
@@ -60,6 +60,8 @@ class NPIImporter:
             addresses = element['addresses']
             licenses = element['licenses']
 
+            c_id = None
+
             for license_num in licenses.keys():
                 number = license_num
                 if number[0] == "R":
@@ -68,6 +70,10 @@ class NPIImporter:
                     number = number[:-2]
                 if number in nys_license_map:
                     matched += 1
+                    c_id = nys_license_map[number]
+
+            # Update matched records with NPI number, gender, phones, practice
+            # Add un-matched records with basic information.
 
             idx += 1
             bar.update(idx)
