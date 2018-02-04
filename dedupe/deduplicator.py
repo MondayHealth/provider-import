@@ -9,6 +9,7 @@ from sqlalchemy import create_engine, func
 from sqlalchemy.orm import scoped_session, sessionmaker, Session, load_only
 
 from db_url import get_db_url
+from importer.credential_parser import CredentialParser
 from importer.loader import RawTable
 from importer.phone_addy_munger import PhoneAddyMunger
 from importer.util import m
@@ -34,6 +35,7 @@ class Record:
         self.licenses: Set[str] = set()
         self.certificates: Set[str] = set()
         self.first_initials: Set[str] = set()
+        self.creds: CredentialParser = None
 
         self.generated_id = -1
 
@@ -85,6 +87,10 @@ class Record:
                 self.first_name = fn
             self.first_initials.add(fn[:2])
 
+        # Parse credentials
+        d = "{:<30} {}".format(fn + " " + ln, row_id)
+        self.creds = CredentialParser(row['license'], d)
+
         self.rows.append(row)
 
     def hash(self) -> str:
@@ -111,12 +117,16 @@ class Record:
         if other.licenses.intersection(self.licenses):
             return True
 
-        if other.zips.intersection(
-                self.zips) and other.first_initials.intersection(
-            self.first_initials):
+        # At this point if we cant even get a zip match theres not much to do
+        if not other.zips.intersection(self.zips):
+            return False
+
+        # If there is a zip intersection we can guess based on initialism
+        if other.first_initials.intersection(self.first_initials):
             return True
 
-        return False
+        # The last thing we can do is match on credentials
+        return other.creds.deduplicate(other.creds)
 
 
 NAME_LIST_MAP = MutableMapping[str, List[Record]]

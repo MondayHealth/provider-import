@@ -14,7 +14,7 @@ class ModalityMunger(MungerPlugin):
     PSYCHO_SUFFIX = re.compile(r'psycho$')
 
     def process_row(self, row: OrderedDict, provider: Provider) -> None:
-        raw: str = m(row, 'modalities', str)
+        raw: str = m(row, 'modalities', str, "")
 
         # services from GT should be parsed in the same way as modality
         directory_id: int = m(row, "directory_id", int)

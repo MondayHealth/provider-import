@@ -1,5 +1,6 @@
 import configparser
 import json
+import pprint
 from typing import List, MutableMapping
 
 import progressbar
@@ -13,7 +14,7 @@ from provider.models.providers import Provider
 
 
 class NPIImporter:
-    PATH = "/Users/ixtli/Public/project/py/npi-db-tools/NY.json"
+    PATH = "/Users/ixtli/Downloads/monday/NY.json"
 
     def __init__(self):
         self.raw: List[dict] = []
@@ -38,14 +39,19 @@ class NPIImporter:
         idx = 0
         matched = 0
 
-        q = self._session.query(License).options(
+        q = self._session.query(License).filter_by(licensor_id=1).options(
             load_only("number", "licensee_id"))
         print("Loading all licenses...")
-        m: MutableMapping[str, int] = {}
+        nys_license_map: MutableMapping[str, int] = {}
         existing: List[License] = q.all()
         for record in existing:
-            m[record.number] = record.licensee_id
-        print("Done:", len(m))
+            number = record.number
+            if number[0] == "R":
+                number = number[1:]
+            if number[-2:] == "-1":
+                number = number[:-2]
+            nys_license_map[number] = record.licensee_id
+        print("Done:", len(nys_license_map))
 
         for element in self.raw:
             names = element['names']
@@ -55,12 +61,18 @@ class NPIImporter:
             licenses = element['licenses']
 
             for license_num in licenses.keys():
-                if license_num in m:
+                number = license_num
+                if number[0] == "R":
+                    number = number[1:]
+                if number[-2:] == "-1":
+                    number = number[:-2]
+                if number in nys_license_map:
                     matched += 1
 
             idx += 1
             bar.update(idx)
 
+        print()
         print("matched", matched, "by exact license")
 
 

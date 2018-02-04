@@ -43,35 +43,40 @@ class LicenseCertMunger(MungerPlugin):
 
         self._abpn = abpn
 
+    def _do_license(self, license_number: str, provider: Provider) -> None:
+        q = self._session.query(License).filter_by(
+            number=license_number, licensor_id=self._nysop.id)
+        lic = q.options(load_only("licensee_id")).one_or_none()
+
+        # Add the nysop license if its not there
+        if not lic:
+            lic = License(number=license_number, licensee=provider,
+                          licensor=self._nysop)
+
+        """
+        It's a requirement of association tables in sqlalchemy that the
+        "child" in the relationship must be explicitly associated with
+        the association record. see:
+        docs.sqlalchemy.org/en/latest/orm/basic_relationships.html
+        #association-object
+        """
+        provider.licenses.append(lic)
+
+    def _do_cert(self, cert_number: str, provider: Provider) -> None:
+        q = self._session.query(License) \
+            .filter_by(number=cert_number, licensor_id=self._abpn.id)
+        cert = q.options(load_only("licensee_id")).one_or_none()
+
+        if not cert:
+            cert = License(number=cert_number, licensor=self._abpn,
+                           licensee=provider)
+        provider.licenses.append(cert)
+
     def process_row(self, row: OrderedDict, provider: Provider) -> None:
-        license_number: str = m(row, 'license_number', str)
+        for number in m(row, 'license_number', str, "").split(";"):
+            if number:
+                self._do_license(number, provider)
 
-        if license_number:
-            q = self._session.query(License).filter_by(
-                number=license_number, licensor_id=self._nysop.id)
-            lic = q.options(load_only("licensee_id")).one_or_none()
-
-            # Add the nysop license if its not there
-            if not lic:
-                lic = License(number=license_number, licensee=provider,
-                              licensor=self._nysop)
-
-            """
-            It's a requirement of association tables in sqlalchemy that the
-            "child" in the relationship must be explicitly associated with
-            the association record. see:
-            docs.sqlalchemy.org/en/latest/orm/basic_relationships.html
-            #association-object
-            """
-            provider.licenses.append(lic)
-
-        cert_number = m(row, 'certificate_number', str)
-        if cert_number:
-            q = self._session.query(License) \
-                .filter_by(number=cert_number, licensor_id=self._abpn.id)
-            cert = q.options(load_only("licensee_id")).one_or_none()
-
-            if not cert:
-                cert = License(number=cert_number, licensor=self._abpn,
-                               licensee=provider)
-            provider.licenses.append(cert)
+        for number in m(row, 'certificate_number', str, "").split(";"):
+            if number:
+                self._do_cert(number, provider)

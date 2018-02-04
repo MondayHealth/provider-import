@@ -1,11 +1,14 @@
 from collections import OrderedDict
 from typing import List, MutableMapping
 
+from sqlalchemy.orm import load_only
+
 from importer.credential_parser import CredentialParser, print_cred_stats
 from importer.munger_plugin_base import MungerPlugin
 from importer.util import m
 from provider.models.credential import Credential
 from provider.models.degree import Degree
+from provider.models.modalities import Modality
 from provider.models.providers import Provider
 
 
@@ -51,6 +54,16 @@ class CredentialsMunger(MungerPlugin):
                 provider.credentials.append(self._credential_map[cred])
             else:
                 print('WARNING: no cred record for', cred)
+
+        for modality_name in creds.modalities:
+            record: Modality = self._session.query(Modality).filter_by(
+                name=modality_name).options(load_only('id')).one_or_none()
+
+            if not record:
+                record = Modality(name=modality_name)
+                self._session.add(record)
+
+            provider.modalities.append(record)
 
     def post_process(self) -> None:
         super().post_process()

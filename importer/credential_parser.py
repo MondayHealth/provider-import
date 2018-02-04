@@ -1,6 +1,5 @@
-from typing import Mapping, Tuple, Set, MutableMapping, List
-
 import sys
+from typing import Mapping, Tuple, Set, MutableMapping, List
 
 from fixtures.academic_degrees import ACRONYM_MAP as DEGREE_ACRONYMS
 from fixtures.licenses_and_certifications import CREDENTIAL_ACRONYMS
@@ -262,7 +261,7 @@ class CredentialParser:
         # Things that may imply bad service
         self.warn: Set[str] = set()
 
-        # Honorifics that aren't a specficially named credential
+        # Honorifics that aren't a specifically named credential
         self.honorifics: Set[str] = set()
 
         # Modalities that were included in the credentials string
@@ -297,6 +296,26 @@ class CredentialParser:
 
         # Run the parser
         self._process()
+
+    def deduplicate(self, other: 'CredentialParser') -> bool:
+        if other.valid_degrees.intersection(self.valid_degrees):
+            return True
+        if other.valid_credentials.intersection(self.valid_credentials):
+            return True
+        if other.extras.intersection(self.extras):
+            return True
+        if other.unknown.intersection(self.unknown):
+            return True
+        if other.lp_credential == self.lp_credential:
+            return True
+        if other.csw_credential == self.csw_credential:
+            return True
+        if other.cp_credential == self.cp_credential:
+            return True
+        if other.psya_credential == self.psya_credential:
+            return True
+
+        return False
 
     def _process(self) -> None:
         # Do the replacements first
