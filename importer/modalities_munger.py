@@ -16,6 +16,11 @@ class ModalityMunger(MungerPlugin):
     def process_row(self, row: OrderedDict, provider: Provider) -> None:
         raw: str = m(row, 'modalities', str)
 
+        # services from GT should be parsed in the same way as modality
+        directory_id: int = m(row, "directory_id", int)
+        if directory_id == 3:
+            raw += " " + m(row, "services", str, "")
+
         if not raw:
             return
 
