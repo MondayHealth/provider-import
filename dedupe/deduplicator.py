@@ -260,7 +260,8 @@ class Deduplicator:
         print()
         print(count, "total records")
 
-    def build_zip_map(self):
+    @staticmethod
+    def build_zip_map():
         config = configparser.ConfigParser()
         config.read("alembic.ini")
         url = get_db_url()
