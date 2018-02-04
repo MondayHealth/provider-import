@@ -25,6 +25,8 @@ REDIS: StrictRedis = StrictRedis()
 
 class Record:
 
+    INITIAL_COUNT: int = 4
+
     def __init__(self, row: OrderedDict):
         self.last_name = None
         self.first_name: str = None
@@ -85,7 +87,7 @@ class Record:
         if fn:
             if not self.first_name:
                 self.first_name = fn
-            self.first_initials.add(fn[:2])
+            self.first_initials.add(fn[:self.INITIAL_COUNT])
 
         # Parse credentials
         d = "{:<30} {}".format(fn + " " + ln, row_id)
@@ -117,16 +119,14 @@ class Record:
         if other.licenses.intersection(self.licenses):
             return True
 
-        # At this point if we cant even get a zip match theres not much to do
-        if not other.zips.intersection(self.zips):
-            return False
-
-        # If there is a zip intersection we can guess based on initialism
+        # The last two cases need the name to be very similar
         if other.first_initials.intersection(self.first_initials):
-            return True
+            if other.zips.intersection(self.zips):
+                return True
+            if other.creds.deduplicate(other.creds):
+                return True
 
-        # The last thing we can do is match on credentials
-        return other.creds.deduplicate(other.creds)
+        return False
 
 
 NAME_LIST_MAP = MutableMapping[str, List[Record]]
