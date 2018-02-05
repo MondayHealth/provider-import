@@ -3,6 +3,7 @@ its response """
 import configparser
 import pprint
 from concurrent.futures import Future, FIRST_COMPLETED, wait
+from time import sleep
 from typing import Mapping, List, Set, Union, MutableMapping
 from urllib import parse
 
@@ -27,7 +28,7 @@ class GoogleMapsScanner:
 
     REQUERY: bool = False
 
-    MAX_REQUESTS: int = 30
+    MAX_REQUESTS: int = 25
 
     REQUEST_TIMEOUT: int = 5
 
@@ -96,9 +97,11 @@ class GoogleMapsScanner:
                 status = data['status']
 
                 if status in self.STATUS_CODES:
-                    args = [row.id, row.geocoding_api_response, status,
-                            self.STATUS_CODES[status]]
-                    raise Exception("{} {} : {} {}".format(*args))
+                    if status == "OVER_QUERY_LIMIT":
+                        print("Throttled")
+                        sleep(2)
+                    else:
+                        continue
 
                 row.geocoding_api_response = data
 
@@ -132,7 +135,10 @@ class GoogleMapsScanner:
             for component in result['address_components']:
                 types = set(component['types'])
                 if 'postal_code' in types:
-                    zips.add(int(component['short_name']))
+                    try:
+                        zips.add(int(component['short_name']))
+                    except ValueError:
+                        pprint.pprint(results)
                     break
 
         if len(zips) < 1:
