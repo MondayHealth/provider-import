@@ -1,12 +1,14 @@
 """ For every raw address in the table, query the google maps API and record
 its response """
 import configparser
-import json
 import pprint
-from typing import Mapping, List, Set
-from urllib import request, parse
+from concurrent.futures import Future, FIRST_COMPLETED, wait
+from typing import Mapping, List, Set, Union, MutableMapping
+from urllib import parse
 
 import progressbar
+from requests import Response
+from requests_futures.sessions import FuturesSession
 from sqlalchemy import create_engine, func, and_
 from sqlalchemy.orm import sessionmaker, scoped_session, Session, load_only
 
@@ -24,6 +26,10 @@ class GoogleMapsScanner:
     URL: str = "https://maps.googleapis.com/maps/api/geocode/json?key=" + KEY
 
     REQUERY: bool = False
+
+    MAX_REQUESTS: int = 30
+
+    REQUEST_TIMEOUT: int = 5
 
     STATUS_CODES: Mapping[str, str] = {
         "OVER_QUERY_LIMIT": "you are over your quota.",
@@ -58,39 +64,84 @@ class GoogleMapsScanner:
         i = 0
         no_results = set()
         queries = 0
-        for row in rows:
-            assert row.geocoding_api_response is None, "query is wrong"
+        session: FuturesSession = FuturesSession(max_workers=self.MAX_REQUESTS)
+        current_futures: Set[Future] = set()
+        future_row_map: MutableMapping[Future, Address] = {}
 
-            encoded_address = "&" + parse.urlencode({'address': row.raw})
-            response = request.urlopen(self.URL + encoded_address)
-            queries += 1
-            result = json.loads(response.read())
-            status = result['status']
+        while len(rows) > 0:
 
-            if status in self.STATUS_CODES:
-                args = [row.id, row.geocoding_api_response, status,
-                        self.STATUS_CODES[status]]
-                raise Exception("{} {} : {} {}".format(*args))
+            current_requests_in_flight = len(current_futures)
 
-            row.geocoding_api_response = result
-            self._session.commit()
+            for idx in range(1, self.MAX_REQUESTS - current_requests_in_flight):
+                if len(rows) < 1:
+                    break
+                row = rows.pop()
+                encoded_address = "&" + parse.urlencode({'address': row.raw})
+                response: Future = session.get(self.URL + encoded_address)
+                future_row_map[response] = row
+                current_futures.add(response)
+                queries += 1
 
-            i += 1
-            pbar.update(i)
+            # Wait on the next future to finish
+            done, current_futures = wait(current_futures,
+                                         self.REQUEST_TIMEOUT,
+                                         FIRST_COMPLETED)
+
+            # For everything done, add it to the db!
+            changes = False
+            for future in done:
+                row = future_row_map.pop(future)
+                result: Response = future.result()
+                data: dict = result.json()
+                status = data['status']
+
+                if status in self.STATUS_CODES:
+                    args = [row.id, row.geocoding_api_response, status,
+                            self.STATUS_CODES[status]]
+                    raise Exception("{} {} : {} {}".format(*args))
+
+                row.geocoding_api_response = data
+
+                api_results: dict = data.get("results", None)
+                if api_results:
+                    zip_code = self._zip_from_results(api_results)
+                    if zip_code is not None:
+                        row.zip_code = zip_code
+
+                changes = True
+
+                i += 1
+                pbar.update(i)
+
+            if changes:
+                self._session.commit()
 
         print("Queries:", queries)
         pprint.pprint(no_results)
 
     @staticmethod
-    def _zips_from_results(results: List[dict]) -> Set[int]:
-        ret: Set[int] = set()
+    def _zip_from_results(results: dict) -> Union[int, None]:
+        if not results:
+            return None
+
+        if len(results) < 1:
+            return None
+
+        zips: Set[int] = set()
         for result in results:
             for component in result['address_components']:
                 types = set(component['types'])
                 if 'postal_code' in types:
-                    ret.add(int(component['short_name']))
+                    zips.add(int(component['short_name']))
                     break
-        return ret
+
+        if len(zips) < 1:
+            return None
+
+        if len(zips) > 1:
+            return None
+
+        return list(zips)[0]
 
     def extract_zipcodes(self) -> None:
         row_count = self._session.query(func.count(Address.id)).filter(
@@ -114,23 +165,10 @@ class GoogleMapsScanner:
                 continue
 
             results = row.geocoding_api_response['results']
+            zip_code = self._zip_from_results(results)
 
-            if not results:
-                continue
-
-            if len(results) < 1:
-                continue
-
-            zips: Set[int] = self._zips_from_results(results)
-
-            if len(zips) < 1:
-                continue
-
-            if len(zips) > 1:
-                print("Multiple results for", row.raw)
-                continue
-
-            row.zip_code = list(zips)[0]
+            if zip_code is not None:
+                row.zip_code = zip_code
 
             if i % 1000:
                 self._session.commit()
@@ -164,7 +202,7 @@ class GoogleMapsScanner:
 def run_from_command_line() -> None:
     gms = GoogleMapsScanner()
     gms.scan()
-    gms.extract_zipcodes()
+    # gms.extract_zipcodes()
     gms.update()
 
 
