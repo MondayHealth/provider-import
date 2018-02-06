@@ -68,6 +68,8 @@ class Provider(Base):
 
     source_updated_at = Column(DateTime)
 
+    gender = Column(String(32), index=True)
+
     age_ranges = Column(NumericRangeArray(postgresql.INT4RANGE, dimensions=1))
 
     age_groups = Column(EnumArray(

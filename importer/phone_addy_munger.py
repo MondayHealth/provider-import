@@ -39,7 +39,7 @@ class PhoneAddyMunger(MungerPlugin):
             return None
 
         if v.national_number > 9999999999:
-            cleaned = self._clean_pn(raw)
+            cleaned = PhoneAddyMunger._clean_pn(raw)
             if cleaned:
                 try:
                     v: PhoneNumber = phonenumbers.parse(cleaned, "US")
@@ -66,7 +66,7 @@ class PhoneAddyMunger(MungerPlugin):
 
         return found
 
-    def _cleanup_phone_numbers(self, raw_phone: str) -> List[Phone]:
+    def cleanup_phone_numbers(self, raw_phone: str) -> List[Phone]:
         p = []
         phone_numbers = set()
 
@@ -123,6 +123,6 @@ class PhoneAddyMunger(MungerPlugin):
                 provider.addresses.append(address)
 
         if raw_phone:
-            for number in self._cleanup_phone_numbers(raw_phone):
+            for number in self.cleanup_phone_numbers(raw_phone):
                 number.directory_id = directory_id
                 provider.phone_numbers.append(number)

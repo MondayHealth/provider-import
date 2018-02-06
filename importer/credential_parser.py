@@ -392,8 +392,9 @@ class CredentialParser:
                 self.ambiguous_board_certification = True
                 continue
 
+            # We decided to coerce this one!
             if sub == 'csw':
-                self.csw_credential = True
+                self.valid_credentials.add("lcsw")
                 continue
 
             if sub in DEGREE_ACRONYMS:
