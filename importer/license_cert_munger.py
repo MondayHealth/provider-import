@@ -137,22 +137,20 @@ class LicenseCertMunger(MungerPlugin):
         if not nysop:
             return
 
+        if not code:
+            code = None
+
         # noinspection PyUnresolvedReferences
-        query_args = {'number': cleaned, 'licensor_id': self._nysop.id}
+        q = self._session.query(License).filter_by(number=cleaned,
+                                                   licensor_id=self._nysop.id,
+                                                   secondary_number=code)
 
-        if code:
-            query_args['secondary_number'] = code
-
-        q = self._session.query(License).filter_by(**query_args)
         lic = q.options(load_only("licensee_id")).one_or_none()
 
         # Add the nysop license if its not there
         if not lic:
-            lic = License(number=license_number, licensee=provider,
-                          licensor=self._nysop)
-
-            if code:
-                lic.secondary_number = code
+            lic = License(number=cleaned, licensee=provider,
+                          licensor=self._nysop, secondary_number=code)
 
         """
         It's a requirement of association tables in sqlalchemy that the

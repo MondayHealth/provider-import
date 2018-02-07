@@ -1,7 +1,9 @@
 import pprint
-from typing import List, Union
+from typing import List, Union, Set, MutableMapping
 
 import progressbar
+from sqlalchemy import text
+from sqlalchemy.engine import ResultProxy
 from sqlalchemy.orm import Session
 
 from importer.license_cert_munger import LicenseCertMunger
@@ -99,12 +101,48 @@ class NYSDBImporter:
         count = len(self._rows)
         bar = progressbar.ProgressBar(initial_value=0, max_value=count)
         idx = 0
-        added = 0
-        # noinspection PyUnresolvedReferences
-        did: int = self._directory.id
+        added = []
+        updated = []
+        conflict = []
+
+        provider_x_name = text("""
+        SELECT id, first_name, last_name
+        FROM monday.provider
+        WHERE name_tsv @@ :tsq :: TSQUERY
+        """)
+
+        license_q = text("""
+        SELECT licensee_id, secondary_number
+        FROM monday.license
+        WHERE number = :license
+        """)
+
         for row in self._rows:
             idx += 1
             bar.update(idx)
+
+            # @TODO: Maybe check: last_name LIKE "%names[0].title()%"  ???
+
+            # Is VERY similar to the full name
+            result: ResultProxy = self._session.execute(provider_x_name, {
+                "tsq": " & ".join(row.names)
+            })
+
+            # @TODO: Maybe a TSQUERY for just the last name?
+
+            found: MutableMapping[int] = set()
+            for record in result.fetchall():
+                found[record.id] = record.first_name + record.last_name
+
+            result = self._session.execute(license_q, {
+                "license": str(row.license_number).zfill(6)
+            })
+
+            for record in result.fetchall():
+                if record.licensee_id in found:
+                    if record.secondary_number == row.profession_code:
+                        # This record is almost 100% the same
+
 
             if idx % 1000:
                 self._session.commit()
@@ -178,12 +216,10 @@ class NYSDBImporter:
                 print(clean, code, raw)
 
 
-
-
 def _run_from_cli():
     n = NYSDBImporter()
-    #n.load()
-    #n.add_new_addresses()
+    # n.load()
+    # n.add_new_addresses()
     n.test_munger()
 
 

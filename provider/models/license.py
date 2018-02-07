@@ -22,4 +22,5 @@ class License(Base):
     licensee = relationship("Provider", back_populates="licenses")
 
 
-UniqueConstraint(License.number, License.licensor_id, License.licensee_id)
+UniqueConstraint(License.number, License.secondary_number, License.licensor_id,
+                 License.licensee_id)
