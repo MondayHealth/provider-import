@@ -14,7 +14,6 @@ from provider.models.address import Address
 from provider.models.credential import Credential
 from provider.models.degree import Degree
 from provider.models.directories import Directory
-# noinspection PyUnresolvedReferences
 from provider.models.licensor import Licensor
 from provider.models.phones import Phone
 from provider.models.providers import Provider
@@ -31,12 +30,12 @@ class NPIImporter:
         self._degree_map: MutableMapping[str, Degree] = {}
         self._credential_map: MutableMapping[str, Credential] = {}
         self._npi_map: MutableMapping[int, int] = {}
-        self._session: Session = self._get_session()
+        self._session: Session = self.get_session()
         self._directory: Directory = self._get_directory()
         self._licensor: Licensor = self._get_licensor()
 
     @staticmethod
-    def _get_session() -> Session:
+    def get_session() -> Session:
         config = configparser.ConfigParser()
         config.read("alembic.ini")
         url = get_db_url()

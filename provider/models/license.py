@@ -9,6 +9,8 @@ from provider.models.licensor import Licensor
 class License(Base):
     number = Column(String(64), nullable=False)
 
+    secondary_number = Column(String(8))
+
     granted = Column(DateTime())
 
     licensor_id = Column(Integer, ForeignKey("licensor.id"), nullable=False)

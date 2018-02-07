@@ -138,7 +138,8 @@ class GoogleMapsScanner:
                     try:
                         zips.add(int(component['short_name']))
                     except ValueError:
-                        pprint.pprint(results)
+                        # pprint.pprint(results)
+                        pass
                     break
 
         if len(zips) < 1:
@@ -208,7 +209,7 @@ class GoogleMapsScanner:
 def run_from_command_line() -> None:
     gms = GoogleMapsScanner()
     gms.scan()
-    # gms.extract_zipcodes()
+    gms.extract_zipcodes()
     gms.update()
 
 

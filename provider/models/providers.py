@@ -64,6 +64,8 @@ class Provider(Base):
 
     school = Column(String(1024))
 
+    email = Column(String(512))
+
     year_graduated = Column(Integer())
 
     source_updated_at = Column(DateTime)

@@ -1,5 +1,4 @@
 import configparser
-import pprint
 from collections import OrderedDict
 from typing import Mapping, List, Set, MutableMapping
 
@@ -12,6 +11,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker, Session, load_only
 
 from db_url import get_db_url
 from importer.credential_parser import CredentialParser
+from importer.license_cert_munger import LicenseCertMunger
 from importer.loader import RawTable
 from importer.phone_addy_munger import PhoneAddyMunger
 from importer.util import m
@@ -35,7 +35,7 @@ class Record:
         self.rows: List[OrderedDict] = []
         self.directories: Set[str] = set()
         self.zips: Set[str] = set()
-        self.licenses: Set[str] = set()
+        self.licenses: MutableMapping[str, Set[str]] = {}
         self.certificates: Set[str] = set()
         self.first_initials: Set[str] = set()
         self.full_names: Set[str] = set()
@@ -80,11 +80,13 @@ class Record:
 
         license_number = m(row, 'license_number', str)
         if license_number:
-            try:
-                license_number = str(int(license_number))
-            except ValueError:
-                pass
-            self.licenses.add(license_number)
+            clean, code, is_nysop = LicenseCertMunger.clean_up_nysop_number(
+                license_number)
+            if is_nysop:
+                if clean in self.licenses:
+                    self.licenses[clean].add(code)
+                else:
+                    self.licenses[clean] = {code}
 
         directory_id: str = m(row, 'directory_id', str, None)
         if not directory_id:
@@ -127,8 +129,10 @@ class Record:
             return True
 
         # If they have the same license number they're the same
-        if other.licenses.intersection(self.licenses):
-            return True
+        for license_number, code_set in other.licenses.items():
+            if license_number in self.licenses:
+                if code_set.intersection(self.licenses[license_number]):
+                    return True
 
         first_initials_match = len(other.first_initials.intersection(
             self.first_initials)) > 0
