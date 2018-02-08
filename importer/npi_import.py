@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session, Session, load_only
 
 from db_url import get_db_url
 from importer.credential_parser import CredentialParser
+from importer.license_cert_munger import LicenseCertMunger
 from importer.phone_addy_munger import PhoneAddyMunger
 from provider.models.address import Address
 from provider.models.credential import Credential
@@ -99,18 +100,13 @@ class NPIImporter:
         SELECT prov.last_name, prov.first_name, number, licensee_id
         FROM monday.license
           JOIN monday.provider AS prov ON licensee_id = prov.id
+        WHERE licensor_id = 1
         """)
 
         ambigous: Set[str] = set()
         print("Loading all licenses...")
         for record in self._session.execute(q).fetchall():
             number = record.number
-            if number[0] == "R":
-                number = number[1:]
-            if number[-2:] == "-1":
-                number = number[:-2]
-            if len(number) != 6:
-                continue
 
             last_name = record.last_name.strip().lower()
 
@@ -202,20 +198,26 @@ class NPIImporter:
     def _match_against_licenses(self) -> None:
         bar = progressbar.ProgressBar(initial_value=0, max_value=len(self.raw))
         idx = 0
+        bad = {}
         for npi, element in self.raw.items():
             idx += 1
             bar.update(idx)
             if npi in self._npi_map:
                 continue
             licenses = element['licenses']
-            for license_num in licenses.keys():
-                number = license_num
-                if number[0] == "R":
-                    number = number[1:]
-                if number[-2:] == "-1":
-                    number = number[:-2]
-                if number in self.nys_license_map:
-                    ids = self.nys_license_map[number]
+            for license_num, state in licenses.items():
+                if state != "NY":
+                    continue
+                clean, code, is_nysop = LicenseCertMunger.clean_up_nysop_number(
+                    license_num)
+
+                if not is_nysop:
+                    elts = [x.values() for x in element['names']]
+                    bad[license_num] = " ".join([str(x) for x in elts])
+                    continue
+
+                if clean in self.nys_license_map:
+                    ids = self.nys_license_map[clean]
                     if len(ids) != 1:
                         # Ambiguous
                         continue

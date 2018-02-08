@@ -96,7 +96,8 @@ class LicenseCertMunger(MungerPlugin):
             cleaned = cleaned.split("&")[0].strip()
 
         tokens: str = cleaned.replace("#", "-") \
-            .replace("NYS", "").replace("NY", "").replace("LMFT", "")
+            .replace("NYS", "").replace("NY", "")\
+            .replace("LMFT", "").replace("LCSW", "")
 
         found = None
         code = ""
@@ -105,7 +106,7 @@ class LicenseCertMunger(MungerPlugin):
                 continue
             if token == "R":
                 continue
-            if token == "1":
+            if token == "1" or token == "0":
                 continue
 
             if len(token) == 2 and not found:
@@ -115,10 +116,9 @@ class LicenseCertMunger(MungerPlugin):
                 except ValueError:
                     pass
 
-            if token[2:] == "PR":
-                token = token[2:]
-            elif token[0] == "R":
-                token = token[1:]
+            token = token.replace('PR', '')
+            token = token.replace('RP', '')
+            token = token.replace('R', '')
 
             try:
                 found = int(token)

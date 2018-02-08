@@ -25,18 +25,18 @@ def run_from_command_line() -> None:
     update_provider_fields = False
 
     plugins = (
-        LicenseCertMunger,
-        PhoneAddyMunger,
+        # LicenseCertMunger,
+        # PhoneAddyMunger,
         CredentialsMunger,
-        PaymentMunger,
-        AcceptedPlanMunger,
-        SpecialtyMunger,
-        LanguageMunger,
-        OrientationMunger,
-        GroupsMunger,
-        AcceptedPayorsMunger,
-        ModalityMunger,
-        AgeRangeMunger,
+        # PaymentMunger,
+        # AcceptedPlanMunger,
+        # SpecialtyMunger,
+        # LanguageMunger,
+        # OrientationMunger,
+        # GroupsMunger,
+        # AcceptedPayorsMunger,
+        # ModalityMunger,
+        # AgeRangeMunger,
     )
 
     munger: Munger = Munger(plugins, plugin_debug)

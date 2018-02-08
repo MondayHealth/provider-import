@@ -1,5 +1,5 @@
-import pprint
-from typing import List, Union, Set, MutableMapping
+from datetime import datetime
+from typing import List, Union, MutableMapping, Set
 
 import progressbar
 from sqlalchemy import text
@@ -8,14 +8,18 @@ from sqlalchemy.orm import Session
 
 from importer.license_cert_munger import LicenseCertMunger
 from importer.npi_import import NPIImporter
+from importer.phone_addy_munger import PhoneAddyMunger
 from provider.models.address import Address
-# noinspection PyUnresolvedReferences
+from provider.models.degree import Degree
 from provider.models.directories import Directory
 from provider.models.license import License
 from provider.models.licensor import Licensor
+from provider.models.providers import Provider
 
 
 class RawLine:
+    DATE_FMT: str = '%m/%d/%y'
+
     @staticmethod
     def _int_or_none(raw: str, start: int, end: int) -> Union[int, None]:
         value = raw[start:end].strip()
@@ -39,21 +43,47 @@ class RawLine:
         self.zip: Union[int, None] = self._int_or_none(raw, 129, 134)
         self.zip_plus_four: Union[int, None] = self._int_or_none(raw, 134, 138)
         self.county_code: str = raw[138:140]
-        self.regents_action: bool = raw[141] == "*"
-        self.license_date: str = raw[141:168]
+        self.regents_action: bool = raw[156] == "*"
+
+        # @TODO: This is not properly documented
+        self._priviledge_codes = raw[157:159]
+
+        self.license_date: datetime = datetime.strptime(raw[160:168].strip(),
+                                                        self.DATE_FMT)
         self.registration_ending_date: str = raw[168:172]
-        self.child_abuse_code: str = raw[173]
-        self.infectious_disease_code: str = raw[174]
-        self.degree_date: str = raw[174:182]
-        self.school: str = raw[182:207]
-        self.email: str = raw[207:247]
+        self.child_abuse_code: str = raw[172]
+        self.infectious_disease_code: str = raw[173]
+
+        self.degree_date: Union[None, datetime] = None
+        raw_degree_date: str = raw[174:182].strip()
+        if raw_degree_date:
+            self.degree_date = datetime.strptime(raw_degree_date, self.DATE_FMT)
+
+        self.school: str = raw[182:207].strip()
+        self.email: str = raw[207:247].strip()
         self.phone: str = raw[247:].strip()
+
+        self.full_license_match: Set[int] = set()
+        self.license_number_match: Set[int] = set()
+        self.name_zip_match: Set[int] = set()
+        self.degree_name_match: Set[int] = set()
+
+    def hash(self) -> str:
+        return "{}{}:{}".format(self.profession_code,
+                                self.license_number,
+                                "".join(self.names))
 
     def get_address(self) -> str:
         components = self.address + [self.city, self.state]
         if self.zip:
             components.append(str(self.zip))
         return " ".join(components)
+
+    def matched(self) -> bool:
+        if self.full_license_match or self.license_number_match \
+                or self.degree_name_match or self.name_zip_match:
+            return True
+        return False
 
 
 class NYSDBImporter:
@@ -64,10 +94,29 @@ class NYSDBImporter:
     def __init__(self) -> None:
         self._session: Session = NPIImporter.get_session()
 
+        self._enriched: MutableMapping[int, RawLine] = {}
+
         self._rows: List[RawLine] = []
+        self._row_by_number: MutableMapping[int, List[RawLine]] = {}
+        self._relevant_degrees: Set[int] = self._get_relevant_degrees()
         self._directory: Directory = self._get_directory()
         self._licensor: Licensor = LicenseCertMunger.get_or_create_nysop(
             self._session)
+
+        self._phone_munger: PhoneAddyMunger = None
+
+        self._ambiguous: MutableMapping[int, List[RawLine]] = {}
+        self._matches: MutableMapping[int, RawLine] = {}
+
+    def _get_relevant_degrees(self) -> Set[int]:
+        ret: Set[int] = set()
+        things_im_interested_in = {"phd", "psyd", "dph"}
+        degrees: List[Degree] = self._session.query(Degree).all()
+        for degree in degrees:
+            if degree.acronym.lower() in things_im_interested_in:
+                # noinspection PyUnresolvedReferences
+                ret.add(degree.id)
+        return ret
 
     def _get_directory(self) -> Directory:
         directory = self._session.query(Directory).filter_by(
@@ -93,61 +142,109 @@ class NYSDBImporter:
         bar = progressbar.ProgressBar(initial_value=0, max_value=len(lines))
         idx = 0
         for line in lines:
-            self._rows.append(RawLine(line))
+            raw = RawLine(line)
+            self._rows.append(raw)
+
+            if raw.license_number in self._row_by_number:
+                self._row_by_number[raw.license_number].append(raw)
+            else:
+                self._row_by_number[raw.license_number] = [raw]
+
             idx += 1
             bar.update(idx)
 
-    def dedupe_and_update(self) -> None:
+    def match_rows_to_license_records(self) -> None:
+        license_q = text("""
+        SELECT licensee_id, number, secondary_number
+        FROM monday.license
+        WHERE licensor_id = 1
+        """)
+
+        print("Getting licenses...")
+        result: ResultProxy = self._session.execute(license_q)
+        licenses: MutableMapping[int, MutableMapping[int, Set[int]]] = {}
+        total_licenses = 0
+        for record in result.fetchall():
+            total_licenses += 1
+            lid = int(record.licensee_id)
+            number = int(record.number)
+            secondary = None
+
+            if record.secondary_number:
+                secondary = int(record.secondary_number)
+
+            lic_num = licenses.get(number, None)
+            if lic_num is None:
+                licenses[number] = {secondary: {lid}}
+            else:
+                if secondary in lic_num:
+                    licenses[number][secondary].add(lid)
+                else:
+                    licenses[number][secondary] = {lid}
+
+            if number in self._row_by_number:
+                rows = self._row_by_number[number]
+                for row in rows:
+                    if secondary:
+                        if row.profession_code == secondary:
+                            row.full_license_match.add(lid)
+                    else:
+                        row.license_number_match.add(lid)
+        print("Done.")
+
+    def complex_match_rows(self) -> None:
         count = len(self._rows)
         bar = progressbar.ProgressBar(initial_value=0, max_value=count)
         idx = 0
-        added = []
-        updated = []
-        conflict = []
 
         provider_x_name = text("""
-        SELECT id, first_name, last_name
-        FROM monday.provider
+        SELECT DISTINCT
+          id,
+          first_name,
+          last_name
+        FROM monday.provider AS p
+          JOIN monday.providers_addresses AS pa ON p.id = pa.provider_id
         WHERE name_tsv @@ :tsq :: TSQUERY
+              AND address_id IN (SELECT id
+                                 FROM monday.address
+                                 WHERE zip_code = :zip );
         """)
 
-        license_q = text("""
-        SELECT licensee_id, secondary_number
-        FROM monday.license
-        WHERE number = :license
-        """)
+        degree_query_text = text("""
+        SELECT DISTINCT
+          p.id,
+          p.first_name,
+          p.last_name
+         FROM monday.provider AS p
+          JOIN monday.providers_degrees ON p.id = providers_degrees.provider_id
+                                           AND providers_degrees.degree_id IN 
+                                           ({})
+        WHERE name_tsv @@ :tsq :: TSQUERY;
+        """.format(",".join([str(x) for x in self._relevant_degrees])))
 
         for row in self._rows:
             idx += 1
             bar.update(idx)
 
-            # @TODO: Maybe check: last_name LIKE "%names[0].title()%"  ???
+            # Special case, there's no reason to recheck
+            if len(row.full_license_match):
+                continue
 
-            # Is VERY similar to the full name
+            last_name = list(filter(None, row.names))[0].lower()
+
             result: ResultProxy = self._session.execute(provider_x_name, {
-                "tsq": " & ".join(row.names)
-            })
-
-            # @TODO: Maybe a TSQUERY for just the last name?
-
-            found: MutableMapping[int] = set()
-            for record in result.fetchall():
-                found[record.id] = record.first_name + record.last_name
-
-            result = self._session.execute(license_q, {
-                "license": str(row.license_number).zfill(6)
+                "tsq": last_name,
+                "zip": row.zip
             })
 
             for record in result.fetchall():
-                if record.licensee_id in found:
-                    if record.secondary_number == row.profession_code:
-                        # This record is almost 100% the same
+                row.name_zip_match.add(record.id)
 
-
-            if idx % 1000:
-                self._session.commit()
-
-        self._session.commit()
+            if row.profession_code == 68:
+                result = self._session.execute(degree_query_text,
+                                               {'tsq': last_name})
+                for record in result.fetchall():
+                    row.degree_name_match.add(record.id)
 
     def add_new_addresses(self) -> None:
         count = len(self._rows)
@@ -184,43 +281,184 @@ class NYSDBImporter:
 
         print("Added", added, "records out of", count, "total.")
 
-    def test_munger(self) -> None:
-        """ This might not have a reason to be in this file but its a good
-        scaffold to test the nysop cleaner """
-        licenses: List[License] = self._session.query(License).all()
-        count = len(licenses)
-        bar = progressbar.ProgressBar(initial_value=0, max_value=count)
+    def _update_provider_using_row(self, pid: int, row: RawLine) -> None:
+
+        provider: Provider = self._session.query(Provider).filter_by(
+            id=pid).one_or_none()
+
+        if pid in self._enriched:
+            print("!! Double:", pid, self._enriched[pid].hash(), "(",
+                  row.hash(),
+                  provider.first_name,
+                  provider.last_name, ")")
+            return
+
+        provider.directories.append(self._directory)
+
+        if row.email:
+            provider.email = row.email
+
+        if row.school:
+            provider.school = row.school
+
+        if row.degree_date:
+            provider.year_graduated = row.degree_date.year
+
+        if row.phone:
+            for phone in self._phone_munger.cleanup_phone_numbers(row.phone):
+                if not phone.directory:
+                    # noinspection PyUnresolvedReferences
+                    phone.directory = self._directory.id
+                provider.phone_numbers.append(phone)
+
+        if "".join(row.address).strip():
+            q = self._session.query(Address).filter_by(raw=row.get_address())
+            address: Address = q.one_or_none()
+            assert address
+            provider.addresses.append(address)
+
+        code = str(row.profession_code)
+        num = str(row.license_number).zfill(6)
+        most_accurate: Union[bool, License] = False
+        for lic in provider.licenses:
+            # noinspection PyUnresolvedReferences
+            if lic.licensor_id != self._licensor.id:
+                continue
+            if lic.secondary_number == code and lic.number == num:
+                if not lic.granted:
+                    lic.granted = row.license_date
+                most_accurate = True
+                break
+            if lic.number == num and not lic.secondary_number:
+                most_accurate = lic
+                continue
+
+        if most_accurate is False:
+            lic = License(licensee=provider, licensor=self._licensor,
+                          number=num, secondary_number=code,
+                          granted=row.license_date)
+            provider.licenses.append(lic)
+        elif most_accurate is not True:
+            assert not most_accurate.secondary_number
+            most_accurate.secondary_number = code
+            most_accurate.granted = row.license_date
+
+        self._enriched[pid] = row
+
+    def _mark_ambiguous(self, pid: int, row: RawLine):
+        if pid not in self._ambiguous:
+            self._ambiguous[pid] = []
+        self._ambiguous[pid].append(row)
+
+    def _match(self, pid: int, row: RawLine) -> None:
+        if pid in self._ambiguous:
+            self._mark_ambiguous(pid, row)
+        elif pid in self._matches and self._matches[pid] != row:
+            self._mark_ambiguous(pid, self._matches[pid])
+            self._mark_ambiguous(pid, row)
+            del self._matches[pid]
+        else:
+            self._matches[pid] = row
+
+    def _do_matches(self) -> None:
+        self._phone_munger: PhoneAddyMunger = PhoneAddyMunger(self._session,
+                                                              False)
+        self._phone_munger.pre_process()
+
+        print("\nEnriching matches...")
+        count = len(self._matches)
         idx = 0
-        not_nysop = set()
-        results = []
-        prof_codes = set()
-        # noinspection PyUnresolvedReferences
-        for lic in licenses:
+        bar = progressbar.ProgressBar(initial_value=idx, max_value=count)
+        for pid, row in self._matches.items():
+            self._update_provider_using_row(pid, row)
+
+            if idx % 250:
+                self._session.commit()
             idx += 1
             bar.update(idx)
-            raw: str = lic.number
-            clean, code, nysop = LicenseCertMunger.clean_up_nysop_number(raw)
-            if not nysop:
-                not_nysop.add(raw)
-            else:
-                prof_codes.add(code)
-                results.append((raw, clean, code))
 
-        print("Not NYSOP:")
-        pprint.pprint(not_nysop)
-        print("Professional Codes:")
-        pprint.pprint(prof_codes)
-        print("NYSOP")
-        for raw, clean, code in results:
-            if len(raw) > 6:
-                print(clean, code, raw)
+        self._session.commit()
+        self._phone_munger.post_process()
+        print("\nDone.")
+
+    def _print_ambiguous(self) -> None:
+        print("Printing", len(self._ambiguous), "ambiguous matches.")
+        for pid, rows in self._ambiguous.items():
+            provider: Provider = self._session.query(Provider).filter_by(
+                id=pid).one_or_none()
+            print(pid, provider.first_name, provider.last_name)
+            for row in rows:
+                print("\t-", row.hash())
+
+    def enrich(self) -> None:
+
+        print("Gathering matched rows...")
+        gathered: List[RawLine] = [r for r in self._rows if r.matched()]
+        print("Done")
+
+        weak_matches: MutableMapping[int, List[RawLine]] = {}
+
+        total_rows = len(self._rows)
+        idx = 0
+        bar = progressbar.ProgressBar(initial_value=idx, max_value=total_rows)
+        for row in gathered:
+            # Do exact matches first
+            found_count: int = len(row.full_license_match)
+            assert found_count < 2
+
+            if found_count == 1:
+                for pid in row.full_license_match:
+                    self._match(pid, row)
+                continue
+
+            # Now do really high correlation ones
+            found: Set[int] = set()
+            for pid in row.license_number_match:
+                name_zip = pid in row.name_zip_match
+                name_degree = pid in row.degree_name_match
+                if name_zip or name_degree:
+                    found.add(pid)
+
+            found_count = len(found)
+            assert found_count < 2
+
+            if found_count == 1:
+                self._match(list(found)[0], row)
+                continue
+
+            # Now relate two things which might be tough
+            found = row.name_zip_match.intersection(row.degree_name_match)
+            found_count = len(found)
+
+            if found_count == 1:
+                self._match(list(found)[0], row)
+            if found_count > 1:
+                for pid in found:
+                    if pid not in weak_matches:
+                        weak_matches[pid] = [row]
+                    else:
+                        weak_matches[pid].append(row)
+
+            idx += 1
+            bar.update(idx)
+
+        self._do_matches()
+
+        self._print_ambiguous()
+
+        print("Weak matches:", len(weak_matches))
+        print("Enriched", len(self._enriched), "records")
 
 
 def _run_from_cli():
     n = NYSDBImporter()
-    # n.load()
+    n.load()
     # n.add_new_addresses()
-    n.test_munger()
+    # n.test_munger()
+    n.match_rows_to_license_records()
+    n.complex_match_rows()
+
+    n.enrich()
 
 
 if __name__ == "__main__":

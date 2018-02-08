@@ -222,6 +222,9 @@ class Deduplicator:
                         self.row_id_to_generated[row_id] = id_counter
                 id_counter += 1
         print(id_counter - 1, "records")
+        existing = REDIS.hgetall(ROW_ID_HASH)
+        if existing:
+            print(len(existing), "rows currently in redis")
 
     @staticmethod
     def _deduplicate_map(records_by_last_name: NAME_LIST_MAP) -> NAME_LIST_MAP:
