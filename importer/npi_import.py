@@ -344,7 +344,7 @@ class NPIImporter:
                 raw_last = name.get("last_name").split(" ")
                 raw_last = " & ".join(list(filter(self._filter_name, raw_last)))
                 if raw_last:
-                    last_names.add(raw_last.lower())
+                    last_names.add(raw_last.lower().replace(":", ""))
 
             if not last_names:
                 continue
