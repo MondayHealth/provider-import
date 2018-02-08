@@ -282,16 +282,10 @@ class NYSDBImporter:
         print("Added", added, "records out of", count, "total.")
 
     def _update_provider_using_row(self, pid: int, row: RawLine) -> None:
+        assert pid not in self._enriched
 
         provider: Provider = self._session.query(Provider).filter_by(
             id=pid).one_or_none()
-
-        if pid in self._enriched:
-            print("!! Double:", pid, self._enriched[pid].hash(), "(",
-                  row.hash(),
-                  provider.first_name,
-                  provider.last_name, ")")
-            return
 
         provider.directories.append(self._directory)
 
