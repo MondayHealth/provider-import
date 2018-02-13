@@ -23,12 +23,12 @@ class CSVDumper:
         pbar = progressbar.ProgressBar(max_value=row_count, initial_value=0)
         i = 0
 
-        fmt: List[str] = []
         columns: List[str] = []
+        dict_keys: List[str] = []
         for column_name in Provider.__table__.columns.keys():
             if column_name not in self.NO_DUMP:
+                dict_keys.append(column_name)
                 columns.append(column_name)
-                fmt.append("{" + column_name + "}")
 
         columns.append("degrees")
         columns.append("credentials")
@@ -49,11 +49,17 @@ class CSVDumper:
         # Write the column name row
         file.write(",".join(columns) + "\n")
 
-        format_string = ",".join(fmt)
         providers: List[Provider] = query.all()
         for provider in providers:
-            out: str = format_string.format(**provider.__dict__)
-            out = out.replace("None", "")
+            cols: List[str] = []
+            for key in dict_keys:
+                val = provider.__dict__[key]
+                if val is not None:
+                    cols.append(str(val).replace(",", ""))
+                else:
+                    cols.append("")
+
+            out: str = ",".join(cols)
 
             accumulator: List = []
             for elt in provider.degrees:
@@ -78,7 +84,7 @@ class CSVDumper:
 
             accumulator = []
             for elt in provider.groups:
-                accumulator.append(elt.body)
+                accumulator.append(elt.body.replace(",", ""))
             sub_out = ";".join(accumulator)
             if sub_out:
                 out += "," + sub_out
@@ -99,21 +105,21 @@ class CSVDumper:
 
             accumulator = []
             for elt in provider.modalities:
-                accumulator.append(elt.name)
+                accumulator.append(elt.name.replace(",", ""))
             sub_out = ";".join(accumulator)
             if sub_out:
                 out += "," + sub_out
 
             accumulator = []
             for elt in provider.treatment_orientations:
-                accumulator.append(elt.body)
+                accumulator.append(elt.body.replace(",", ""))
             sub_out = ";".join(accumulator)
             if sub_out:
                 out += "," + sub_out
 
             accumulator = []
             for elt in provider.specialties:
-                accumulator.append(elt.name)
+                accumulator.append(elt.name.replace(",", ""))
             sub_out = ";".join(accumulator)
             if sub_out:
                 out += "," + sub_out
@@ -132,7 +138,7 @@ class CSVDumper:
 
             accumulator = []
             for elt in provider.accepted_payor_comments:
-                accumulator.append(elt.body)
+                accumulator.append(elt.body.replace(",", ""))
             sub_out = ";".join(accumulator)
             if sub_out:
                 out += "," + sub_out
