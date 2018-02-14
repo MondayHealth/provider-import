@@ -1,6 +1,7 @@
 from typing import IO, List, Set
 
 import progressbar
+from psycopg2._range import NumericRange
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -16,6 +17,12 @@ class CSVDumper:
 
     def __init__(self):
         self._session: Session = NPIImporter.get_session()
+
+    @staticmethod
+    def _str_for_numeric_range(range: NumericRange) -> str:
+        a = range._bounds[0]
+        b = range._bounds[1]
+        return "{}{}-{}{}".format(a, range.lower, range.upper, b)
 
     def dump(self, file: IO) -> None:
         row_count = self._session.query(func.count(Provider.id)).scalar()
@@ -54,115 +61,80 @@ class CSVDumper:
             cols: List[str] = []
             for key in dict_keys:
                 val = provider.__dict__[key]
+
+                if key == "age_groups":
+                    if not val or len(val) < 1:
+                        cols.append("")
+                    else:
+                        cols.append(";".join(val))
+                    continue
+
+                if key == "age_ranges":
+                    if not val or len(val) < 1:
+                        cols.append("")
+                        continue
+                    range_out = []
+                    for rng in val:
+                        range_out.append(self._str_for_numeric_range(rng))
+                    cols.append(";".join(range_out))
+                    continue
+
                 if val is not None:
                     cols.append(str(val).replace(",", ""))
                 else:
                     cols.append("")
 
-            out: str = ",".join(cols)
+            cols.append(";".join([x.acronym for x in provider.degrees]))
 
-            accumulator: List = []
-            for elt in provider.degrees:
-                accumulator.append(elt.acronym)
-            sub_out = ";".join(accumulator)
-            if sub_out:
-                out += "," + sub_out
+            cols.append(";".join([x.acronym for x in provider.credentials]))
 
-            accumulator: List = []
-            for elt in provider.credentials:
-                accumulator.append(elt.acronym)
-            sub_out = ";".join(accumulator)
-            if sub_out:
-                out += "," + sub_out
+            cols.append(";".join(str(x.id) for x in provider.directories))
 
-            accumulator = []
-            for elt in provider.directories:
-                accumulator.append(str(elt.id))
-            sub_out = ";".join(accumulator)
-            if sub_out:
-                out += "," + sub_out
+            cols.append(
+                ";".join([x.body.replace(",", "") for x in provider.groups]))
 
-            accumulator = []
-            for elt in provider.groups:
-                accumulator.append(elt.body.replace(",", ""))
-            sub_out = ";".join(accumulator)
-            if sub_out:
-                out += "," + sub_out
+            cols.append(";".join([x.name for x in provider.languages]))
 
-            accumulator = []
-            for elt in provider.languages:
-                accumulator.append(elt.name)
-            sub_out = ";".join(accumulator)
-            if sub_out:
-                out += "," + sub_out
+            cols.append(";".join([x.number for x in provider.licenses]))
 
-            accumulator = []
-            for elt in provider.licenses:
-                accumulator.append(elt.number)
-            sub_out = ";".join(accumulator)
-            if sub_out:
-                out += "," + sub_out
+            cols.append(";".join(
+                [x.name.replace(",", "") for x in provider.modalities]))
 
-            accumulator = []
-            for elt in provider.modalities:
-                accumulator.append(elt.name.replace(",", ""))
-            sub_out = ";".join(accumulator)
-            if sub_out:
-                out += "," + sub_out
+            cols.append(";".join([x.body.replace(",", "") for x in
+                                  provider.treatment_orientations]))
 
-            accumulator = []
-            for elt in provider.treatment_orientations:
-                accumulator.append(elt.body.replace(",", ""))
-            sub_out = ";".join(accumulator)
-            if sub_out:
-                out += "," + sub_out
-
-            accumulator = []
-            for elt in provider.specialties:
-                accumulator.append(elt.name.replace(",", ""))
-            sub_out = ";".join(accumulator)
-            if sub_out:
-                out += "," + sub_out
+            cols.append(";".join([x.name.replace(",", "") for x in
+                                  provider.specialties]))
 
             accumulator = []
             s_acc = set()
             for elt in provider.plans_accepted:
                 accumulator.append(str(elt.id))
                 s_acc.add(str(elt.payor_id))
-            sub_out = ";".join(accumulator)
-            if sub_out:
-                out += "," + sub_out
-            sub_out = ";".join(s_acc)
-            if sub_out:
-                out += "," + sub_out
+            cols.append(";".join(accumulator))
+            cols.append(";".join(s_acc))
 
             accumulator = []
             for elt in provider.accepted_payor_comments:
                 accumulator.append(elt.body.replace(",", ""))
-            sub_out = ";".join(accumulator)
-            if sub_out:
-                out += "," + sub_out
+            cols.append(";".join(accumulator))
 
             accumulator = []
             s_acc = set()
             for elt in provider.addresses:
                 if elt.formatted:
-                    accumulator.append(elt.formatted)
+                    accumulator.append(elt.formatted.replace(",", ""))
+                if elt.zip_code:
                     s_acc.add(str(elt.zip_code).zfill(5))
-            sub_out = ";".join(s_acc)
-            if sub_out:
-                out += "," + sub_out
-            sub_out = ";".join(accumulator)
-            if sub_out:
-                out += "," + sub_out
+            cols.append(";".join(s_acc))
+            cols.append(";".join(accumulator))
 
             accumulator = []
             for elt in provider.phone_numbers:
                 accumulator.append(str(elt.npa) + str(elt.nxx) + str(elt.xxxx))
-            sub_out = ";".join(accumulator)
-            if sub_out:
-                out += "," + sub_out
+            cols.append(";".join(accumulator))
 
+            out: str = ",".join(cols)
             file.write(out + "\n")
             i += 1
             pbar.update(i)
