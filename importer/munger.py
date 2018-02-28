@@ -1,4 +1,5 @@
 import configparser
+import datetime
 from typing import Mapping, Type, Iterable, List, MutableMapping, Set, Union
 
 import progressbar
@@ -47,7 +48,6 @@ class Munger:
         'free_consultation': (bool, (3,)),
         'website_url': (str, (4,)),
         'accepting_new_patients': (bool, None),
-        'began_practice': (int, (4,)),
         'school': (str, None),
         'year_graduated': (int, None),
     }
@@ -127,6 +127,8 @@ class Munger:
 
         directories: MutableMapping[int, Set[int]] = {}
 
+        current_year: int = datetime.datetime.now().year
+
         i = 0
         bar = progressbar.ProgressBar(max_value=len(rows), initial_value=i)
         for row in rows:
@@ -173,6 +175,11 @@ class Munger:
                         args[k] = val
                 provider: Provider = Provider(id=canonical_id, **args)
                 provider = self._session.merge(provider)
+
+                # A special case
+                yip: int = m(row, 'years_in_practice', int)
+                if not yip or yip < 1:
+                    provider.began_practice = current_year - yip
 
             # Relate the provider to the directory
             if directory_id and directory_id in self._directory_map:
