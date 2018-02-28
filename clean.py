@@ -63,6 +63,7 @@ class DatabaseCleaner:
         connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         cursor = connection.cursor()
         cursor.execute("VACUUM FULL VERBOSE ANALYSE;")
+        print("Closing connection...")
         connection.close()
         print("Done.")
 
