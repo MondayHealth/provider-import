@@ -2,6 +2,8 @@ import configparser
 import datetime
 from typing import Mapping, Type, Iterable, List, MutableMapping, Set, Union
 
+# This import is fucked up but i like pbar
+# noinspection PyPackageRequirements
 import progressbar
 from redis import StrictRedis
 from sqlalchemy import create_engine
@@ -149,9 +151,12 @@ class Munger:
                 dirs: Union[int, None] = directories.get(canonical_id, None)
                 args = {}
 
-                for k, v in self.ROW_FIELDS.items():
-                    coercer, priorities = v
+                for row_name, row_params in self.ROW_FIELDS.items():
+                    coercer, priorities = row_params
 
+                    # @TODO: NOTE!! If a higher priority row had no value, lower
+                    # @TODO: priority rows WITH values will skip!! I am highly
+                    # @TODO: suspicious that this will work for all cases!!
                     if dirs:
                         skip = False
                         for priority in priorities:
@@ -166,14 +171,17 @@ class Munger:
                             continue
 
                     # Get the value
-                    val = m(row, k, coercer)
+                    coerced_value = m(row, row_name, coercer)
 
                     # This check is important because we want fields that are
                     # set to null to not overwrite existing fields from other
                     # record sources
-                    if val is not None:
-                        args[k] = val
-                provider: Provider = Provider(id=canonical_id, **args)
+                    if coerced_value is not None:
+                        args[row_name] = coerced_value
+
+                # Regardless of the outcome, we can still merge a new record
+                args['id'] = canonical_id
+                provider: Provider = Provider(**args)
                 provider = self._session.merge(provider)
 
                 # A special case

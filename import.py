@@ -33,7 +33,7 @@ def run_from_command_line() -> None:
     plugins = (
         # LicenseCertMunger,
         # PhoneAddyMunger,
-        CredentialsMunger,
+        # CredentialsMunger,
         # PaymentMunger,
         # AcceptedPlanMunger,
         # SpecialtyMunger,
@@ -132,5 +132,5 @@ def full_import() -> None:
 
 
 if __name__ == "__main__":
-    full_import()
-    # run_from_command_line()
+    # full_import()
+    run_from_command_line()
