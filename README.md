@@ -3,7 +3,7 @@
 You must have python3.6 installed. Do this with homebrew. Install `Postgres10+`
 and `postgis` using homebrew. Before doing anything, make sure you can connect
 to postgres localy and that you do `CREATE EXTENSION postgis` followed by
-`CREATE EXTENSION postgis_topology`.
+`CREATE EXTENSION postgis_topology`, and finally `CREATE EXTENSION pg_trgm`.
 
 Further, to use any functionality related to deduplication, you must be running
 redis 4+ locally. To do this just `brew install redis`.

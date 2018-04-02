@@ -112,3 +112,16 @@ class Provider(Base):
 Index("ix_monday_provider_name_gin",
       Provider.name_tsv,
       postgresql_using="gin")
+
+""" Something like this: 
+CREATE INDEX ix_monday_provider_first_name_last_name_gin
+  ON monday.provider USING GIN (first_name gin_trgm_ops, last_name gin_trgm_ops)
+"""
+Index("ix_monday_provider_first_name_last_name_gin",
+      Provider.first_name,
+      Provider.last_name,
+      postgresql_using="gin",
+      postgresql_ops={
+          'first_name': 'gin_trgm_ops',
+          'last_name': 'gin_trgm_ops'
+      })
