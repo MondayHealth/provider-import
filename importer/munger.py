@@ -191,9 +191,14 @@ class Munger:
 
             # Relate the provider to the directory
             if directory_id and directory_id in self._directory_map:
-                dir_record = self._directory_map[directory_id]
-                if dir_record not in provider.directories:
-                    provider.directories.append(dir_record)
+                found = False
+                for directory in provider.directories:
+                    if directory.id == directory_id:
+                        found = True
+                        break
+                if not found:
+                    provider.directories.append(
+                        self._directory_map[directory_id])
 
             # Do all the plugins
             for plugin in self._plugins:
