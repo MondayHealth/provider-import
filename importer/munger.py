@@ -61,7 +61,7 @@ class Munger:
         for row in rows:
             mutate(row, 'record_limit', int)
             directory = self._session.merge(Directory(**row))
-            self._directory_map[directory.id] = directory
+            self._directory_map[int(directory.id)] = directory
             bar.update(i)
             i = i + 1
 
@@ -191,7 +191,9 @@ class Munger:
 
             # Relate the provider to the directory
             if directory_id and directory_id in self._directory_map:
-                provider.directories.append(self._directory_map[directory_id])
+                dir_record = self._directory_map[directory_id]
+                if dir_record not in provider.directories:
+                    provider.directories.append(dir_record)
 
             # Do all the plugins
             for plugin in self._plugins:
